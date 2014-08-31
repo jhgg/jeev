@@ -41,7 +41,7 @@ class Modules(object):
 
     def unload(self, module_name):
         module = self.module_dict[module_name]
-        module.unload()
+        module._unload()
         del self.module_dict[module_name]
         self.module_list.remove(module)
 
@@ -72,11 +72,15 @@ class Module(object):
         self.message_listeners = []
         self.regex_listeners = []
         self.loaded_callbacks = []
+        self.unload_callbacks = []
         self.running_greenlets = set()
         self.jeev = None
         self.opts = None
 
-    def unload(self):
+    def _unload(self):
+        for callback in self.unload_callbacks:
+            callback(self)
+
         self.regex_listeners[:] = []
         self.loaded_callbacks[:] = []
         self.message_listeners[:] = []
@@ -98,6 +102,9 @@ class Module(object):
 
     def loaded(self, f):
         self.loaded_callbacks.append(f)
+
+    def unload(self, f):
+        self.unload_callbacks.append(f)
 
     def command(self, command, priority=0):
         def bind_command(f):
