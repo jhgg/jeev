@@ -1,0 +1,1 @@
+# Hubot clone in python, written ontop of gevent... because I don't want callback spaghetti.
