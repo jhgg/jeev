@@ -1,9 +1,7 @@
-adapter = 'slack'
+adapter = 'console'
 adapterOpts = {
-    'listenHost': 'localhost',
-    'listenPort': 8080,
-    'token': 'xxx',
-    'teamName': 'xxx',
+    'consoleChannel': 'test',
+    'consoleUser': 'user',
 }
 
 modules = {

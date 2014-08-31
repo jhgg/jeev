@@ -2,6 +2,7 @@ from datetime import datetime
 from urllib import urlencode
 import pytz
 import requests
+import module
 from utils.date import dateDiff
 from werkzeug.utils import escape
 
@@ -49,33 +50,32 @@ class TVRageParser(object):
         return out
 
 
-def export(module):
-    @module.respond('when does (?:the next episode of )?(.*) air\??')
-    @module.async(timeout=5)
-    def next(message, show):
-        res = requests.get('http://services.tvrage.com/tools/quickinfo.php?%s' % urlencode({'show': show}))
-        if res.status_code != requests.codes.ok:
-            return
+@module.respond('when does (?:the next episode of )?(.*) air\??')
+@module.async(timeout=5)
+def next(message, show):
+    res = requests.get('http://services.tvrage.com/tools/quickinfo.php?%s' % urlencode({'show': show}))
+    if res.status_code != requests.codes.ok:
+        return
 
-        info = TVRageParser.parse(res.text)
+    info = TVRageParser.parse(res.text)
 
-        if 'Next Episode' in info:
-            e = info['Next Episode']
-            out = "The next episode(s) of *%s* " % info['Show Name']
-            out += '(%s [%sx%s]) will air on %s' % (
-                e.name, e.season, e.episode, info['Network'])
+    if 'Next Episode' in info:
+        e = info['Next Episode']
+        out = "The next episode(s) of *%s* " % info['Show Name']
+        out += '(%s [%sx%s]) will air on %s' % (
+            e.name, e.season, e.episode, info['Network'])
 
-            if 'GMT+0 NODST' in info:
-                airdate = info['GMT+0 NODST']
-                now = eastern.normalize(pytz.utc.localize(datetime.now()))
-                if now < airdate:
-                    diff = airdate - now
-                    out += ' in about *%s* on *%s*' % (dateDiff(
-                        diff.seconds + diff.days * 3600 * 24
-                    ), eastern.normalize(airdate).strftime('%A, %B %d, %Y* at *%I:%M %p %Z')
-                    )
+        if 'GMT+0 NODST' in info:
+            airdate = info['GMT+0 NODST']
+            now = eastern.normalize(pytz.utc.localize(datetime.now()))
+            if now < airdate:
+                diff = airdate - now
+                out += ' in about *%s* on *%s*' % (dateDiff(
+                    diff.seconds + diff.days * 3600 * 24
+                ), eastern.normalize(airdate).strftime('%A, %B %d, %Y* at *%I:%M %p %Z')
+                )
 
-            message.reply_to_user(out)
+        message.reply_to_user(out)
 
-        else:
-            message.reply_to_user("I'm not sure when the next episode of *%s* will air." % (escape(info['Show Name'])))
+    else:
+        message.reply_to_user("I'm not sure when the next episode of *%s* will air." % (escape(info['Show Name'])))

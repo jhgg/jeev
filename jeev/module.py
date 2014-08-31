@@ -1,10 +1,12 @@
 from collections import defaultdict
 import bisect
-from functools import wraps
 import functools
-from importlib import import_module
+import logging
 import re
 import gevent
+import sys
+
+logger = logging.getLogger('jeev.module')
 
 
 class Modules(object):
@@ -13,31 +15,41 @@ class Modules(object):
         self.module_list = []
         self.module_dict = {}
 
-    def load(self):
-        for module, opts in getattr(self.jeev.config, 'modules', {}).iteritems():
-            if module in self.module_dict:
-                raise RuntimeError("Trying to load duplicate module!")
+    def load_all(self):
+        for module_name, opts in getattr(self.jeev.config, 'modules', {}).iteritems():
+            self.load(module_name, opts)
 
-            module_obj = self.import_module(module)
+    def load(self, module_name, opts):
+        if module_name in self.module_dict:
+            raise RuntimeError("Trying to load duplicate module!")
 
-            if hasattr(module_obj, 'export'):
-                module_inst = Module()
-                module_obj.export(module_inst)
-                module_obj = module_inst
+        module_obj = Module(module_name)
+        self._import_module(module_name, module_obj)
 
-            elif hasattr(module_obj, 'module'):
-                module_obj = module_obj.module
+        if isinstance(module_obj, Module):
+            module_obj._register(self, opts)
+            self.module_list.append(module_obj)
+            self.module_dict[module_name] = module_obj
 
-            if isinstance(module_obj, Module):
-                module_obj._register(self, opts)
-                self.module_list.append(module_obj)
-                self.module_dict[module] = module_obj
+        else:
+            print "Could not load", module_name
 
-            else:
-                print "Could not load", module
+    def unload(self, module_name):
+        module = self.module_dict[module_name]
+        module.unload()
+        del self.module_dict[module_name]
+        self.module_list.remove(module)
 
-    def import_module(self, name):
-        return import_module('modules.%s' % name)
+    def _import_module(self, name, module_instance):
+        name = 'modules.%s' % name
+        try:
+            sys.modules['module'] = module_instance
+            __import__(name)
+            return sys.modules[name]
+
+        finally:
+            sys.modules.pop('module')
+            sys.modules.pop(name, None)
 
     def handle_message(self, message):
         for module in self.module_list:
@@ -47,14 +59,28 @@ class Modules(object):
 class Module(object):
     STOP = object()
 
-    def __init__(self, author=None, description=None):
+    def __init__(self, name, author=None, description=None):
+        self.name = name
         self.author = author
         self.description = description
-        self.message_listeners = []
         self.commands = defaultdict(list)
+        self.message_listeners = []
         self.regex_listeners = []
-        self.respond_regex_listeners = []
         self.loaded_callbacks = []
+        self.running_greenlets = set()
+        self.jeev = None
+        self.opts = None
+
+    def unload(self):
+        self.regex_listeners[:] = []
+        self.loaded_callbacks[:] = []
+        self.message_listeners[:] = []
+        self.commands.clear()
+        self.jeev = None
+        self.opts = None
+
+        gevent.killall(list(self.running_greenlets), block=False)
+        self.running_greenlets.clear()
 
     def _register(self, modules, opts):
         self.jeev = modules.jeev
@@ -111,6 +137,8 @@ class Module(object):
             def wrapped(*args, **kwargs):
                 g = gevent.Greenlet(f, *args, **kwargs)
                 g.link_exception(self.on_error)
+                g.link(lambda v: self.running_greenlets.discard(g))
+                self.running_greenlets.add(g)
                 g.start_later(0)
                 return sync_ret_val
 
@@ -118,9 +146,17 @@ class Module(object):
 
         return wrapper
 
+    def spawn(self, f, *args, **kwargs):
+        g = gevent.Greenlet(f, *args, **kwargs)
+        g.link_exception(self.on_error)
+        g.link(lambda v: self.running_greenlets.discard(g))
+        self.running_greenlets.add(g)
+        g.start_later(0)
+        return g
+
     def call_f(self, f, *args, **kwargs):
         try:
-            print "calling", f, "with", args, kwargs
+            logger.debug("calling %r with %r %r)", f, args, kwargs)
             return f(*args, **kwargs)
         except Exception, e:
             self.on_error(e)
@@ -159,4 +195,4 @@ class Module(object):
             e = e.exception
 
         self.jeev.on_module_error(self, e)
-        raise e
+        logger.exception("Exception raised %r", e)

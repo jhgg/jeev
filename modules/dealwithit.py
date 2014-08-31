@@ -1,4 +1,4 @@
-import random
+import module
 
 deal = [
   "http://i.imgur.com/ykDuU.gif",
@@ -34,6 +34,6 @@ deal = [
   "http://i.imgur.com/5pMiY03.gif"
 ]
 
-
-def export(module):
-    module.hear('deal with it')(lambda message: message.reply_to_user(random.choice(deal)))
+@module.hear('deal with it')
+def deal_with_it(message):
+    message.reply_random(deal)

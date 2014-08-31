@@ -1,3 +1,6 @@
-import random
+import module
 
-export = lambda mod: mod.hear('(?:throw|flip|toss) a coin')(lambda m: m.reply_to_user(random.choice(['heads', 'tails'])))
+
+@module.hear('(?:throw|flip|toss) a coin')
+def flip_coin(message):
+    message.reply_with_one_of('heads', 'tails')

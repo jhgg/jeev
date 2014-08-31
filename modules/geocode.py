@@ -1,14 +1,12 @@
-from geopy.geocoders import Nominatim
-from werkzeug.utils import escape
 from jeev.message import Attachment
-from jeev.module import Module
 from utils.importing import import_dotted_path
+import module
 
-module = Module()
 
 @module.loaded
 def loaded(module):
     module.geocoder = import_dotted_path(module.opts['using'])()
+
 
 @module.respond('geocode (.*)$')
 @module.async()

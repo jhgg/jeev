@@ -1,11 +1,7 @@
 from jeev.message import Attachment
-from jeev.module import Module
 import requests
+import module
 
-module = Module(
-    author="Jake",
-    description="A module that shows JIRA issues."
-)
 
 color_to_hex = {
     'green': '#14892c',
@@ -16,8 +12,9 @@ color_to_hex = {
     'medium-gray': '#cccccc',
 }
 
+
 @module.match('(?P<issue_key>[A-Z]+\-\d+)')
-@module.async(Module.STOP)
+@module.async(module.STOP)
 def jira_issue(message, issue_key):
     r = requests.get('%s/issue/%s?full' % (module.opts['cache'], issue_key))
     if r.status_code == requests.codes.ok:

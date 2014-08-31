@@ -13,7 +13,7 @@ class Jeev(object):
 
     def run(self, join=True):
         self.adapter.start()
-        self.modules.load()
+        self.modules.load_all()
 
         if join:
             self.join()

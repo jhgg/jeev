@@ -1,3 +1,4 @@
+import random
 
 class Message(object):
     def __init__(self, meta, channel, user, message):
@@ -20,6 +21,12 @@ class Message(object):
 
     def reply_with_attachment(self, *attachment):
         self.jeev.send_attachment(self.channel, *attachment)
+
+    def reply_random(self, choices):
+        self.jeev.reply_to_user(random.choice(choices))
+
+    def reply_with_one_of(self, *choices):
+        self.reply_random(choices)
 
     reply_with_attachments = reply_with_attachment
 

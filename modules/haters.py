@@ -1,4 +1,4 @@
-import random
+import module
 
 haters = [
     "http://i671.photobucket.com/albums/vv78/Sinsei55/HatersGonnaHatePanda.jpg"
@@ -14,5 +14,4 @@ haters = [
 ]
 
 
-def export(module):
-    module.hear('haters gonna hate')(lambda m: m.reply_to_user(random.choice(haters)))
+module.hear('haters gonna hate')(lambda m: m.reply_random(haters))

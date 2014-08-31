@@ -1,13 +1,7 @@
 import urllib
 from werkzeug.utils import escape
-from jeev.module import Module
+import module
 import requests
-
-
-module = Module(
-    author="jhgg",
-    description="searches hacker news"
-)
 
 
 @module.respond('search (?:hn|hacker ?news) for (.*)$')

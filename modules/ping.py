@@ -1,10 +1,4 @@
-from jeev.module import Module
-
-module = Module(
-    author="Jake",
-    description="A module that responds to PING!"
-)
-
+import module
 
 @module.command('!ping')
 def ping(message):

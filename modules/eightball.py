@@ -1,4 +1,4 @@
-import random
+import module
 
 ball = [
     "It is certain",
@@ -24,6 +24,5 @@ ball = [
 ]
 
 
-def export(module):
-    module.command('8ball')(lambda m: m.reply_to_user(random.choice(ball)))
+module.command('8ball')(lambda m: m.reply_random(ball))
 

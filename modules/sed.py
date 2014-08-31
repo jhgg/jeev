@@ -5,13 +5,9 @@ from operator import or_
 from collections import deque, defaultdict
 import signal
 import gevent
-from jeev.module import Module
 from werkzeug.utils import escape
+import module
 
-module = Module(
-    author="Jake",
-    description="A module that responds to PING!"
-)
 
 translations = {
     'i': re.I,
@@ -51,16 +47,6 @@ def doTranslation(str, flags):
 channels = defaultdict(lambda: deque(maxlen=25))
 
 
-@module.listen()
-@module.async()
-def listener(message):
-    if message.message.startswith('s/'):
-        do_sed(message)
-
-    else:
-        channels[message.channel].append((message.user, message.message))
-
-
 def do_sed(message):
     if message.channel not in channels:
         return
@@ -83,7 +69,7 @@ def do_sed(message):
         g.throw(gevent.GreenletExit)
 
     # ## We install a signal handler, to timeout the regular expression match if it's taking too long, i.e. evil regexp
-    ###  s/^(a+)+$/rip/
+    # ##  s/^(a+)+$/rip/
     old_sighandler = signal.signal(signal.SIGALRM, raiseKeyboardInterrupt)
     signal.setitimer(signal.ITIMER_REAL, 0.05)
     try:
@@ -146,5 +132,16 @@ def parse_sed(message):
         flags = reduce(or_, r) if r else 0
 
     return ''.join(regex), ''.join(replacement), flags, target
+
+
+@module.listen()
+def listener(message):
+    if message.message.startswith('s/'):
+        module.spawn(do_sed, message)
+
+    else:
+        channels[message.channel].append((message.user, message.message))
+
+
 
 

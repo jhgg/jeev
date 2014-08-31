@@ -1,4 +1,5 @@
 import random
+import module
 
 emojis = {
   "+1": "https://assets-cdn.github.com/images/icons/emoji/unicode/1f44d.png?v5",
@@ -894,9 +895,8 @@ emojis = {
 emoji_list = emojis.keys()
 
 
-def export(module):
 
-    @module.hear(':([a-z\-]+):')
-    def smile(message, emoji):
-        if random.randint(1, 100) < 5:
-            message.reply(' '.join(':%s:' % random.choice(emoji_list) for i in xrange(random.randint(3, 15))))
+@module.hear(':([a-z\-]+):')
+def smile(message, emoji):
+    if random.randint(1, 100) < 5:
+        message.reply(' '.join(':%s:' % random.choice(emoji_list) for i in xrange(random.randint(3, 15))))
