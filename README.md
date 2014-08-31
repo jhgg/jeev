@@ -5,6 +5,13 @@ Jeev is a python alternative to Github's famous Hubot, using Python+Gevent inste
 # Motivation
 
 I got tired of Hubot's callback spaghetti, and decided to write an alternative to work with my company's slack channel.
+This project is a work in progress, and is roughly documented. 
+
+# Getting Started
+
+Just set up a python virtual environment, run `pip install -r requirements.txt`, `cp config.sample.py config.py`
+and then run `python main.py` and you're up and running. The default adapter will listen for messages in STDIN, and 
+print the bot's replies to STDOUT.
 
 # License
 
