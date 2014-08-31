@@ -18,8 +18,10 @@ class Message(object):
     def reply(self, message):
         self.jeev.send_message(self.channel, message)
 
-    def reply_with_attachment(self, attachment):
-        self.jeev.send_attachment(self.channel, attachment)
+    def reply_with_attachment(self, *attachment):
+        self.jeev.send_attachment(self.channel, *attachment)
+
+    reply_with_attachments = reply_with_attachment
 
 
 class Attachment(object):

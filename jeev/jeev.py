@@ -36,12 +36,13 @@ class Jeev(object):
     def send_message(self, channel, message):
         self.adapter.send_message(channel, message)
 
-    def send_attachment(self, channel, attachment):
+    def send_attachment(self, channel, *attachments):
         if hasattr(self.adapter, 'send_attachment'):
-            self.adapter.send_attachment(channel, attachment)
+            self.adapter.send_attachment(channel, *attachments)
 
         else:
-            self.adapter.send_message(channel, attachment.fallback)
+            for a in attachments:
+                self.adapter.send_message(channel, a.fallback)
 
     def on_module_error(self, module, e):
         print module, e

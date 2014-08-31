@@ -61,7 +61,7 @@ class SlackAdapter(object):
         for message in messages:
             self.send_message(channel, message)
 
-    def send_attachment(self, channel, attachment):
+    def send_attachment(self, channel, *attachments):
         if channel not in self.channel_id_cache:
             return
 
@@ -69,11 +69,12 @@ class SlackAdapter(object):
             'username': self.jeev.name,
             'link_names': self.opts.get('linkNames', False),
             'channel': self.channel_id_cache[channel],
-            'attachments': [attachment.serialize()]
+            'attachments': [a.serialize() for a in attachments]
         }
 
-        for k, v in attachment.message_overrides.items():
-            args[k] = v
+        for a in attachments:
+            for k, v in a.message_overrides.items():
+                args[k] = v
 
         self.requests.post(self.send_url, json.dumps(args))
 
