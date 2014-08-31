@@ -23,16 +23,21 @@ class Modules(object):
         if module_name in self.module_dict:
             raise RuntimeError("Trying to load duplicate module!")
 
-        module_obj = Module(module_name)
-        self._import_module(module_name, module_obj)
+        try:
+            logger.debug("Loading module %s", module_name)
+            module_obj = Module(module_name)
+            self._import_module(module_name, module_obj)
 
-        if isinstance(module_obj, Module):
+            logger.debug("Registering module %s", module_name)
             module_obj._register(self, opts)
             self.module_list.append(module_obj)
             self.module_dict[module_name] = module_obj
 
-        else:
-            print "Could not load", module_name
+            logger.info("Lodaed module %s", module_name)
+
+        except Exception, e:
+            logger.exception("Could not load module %s", module_name)
+            raise e
 
     def unload(self, module_name):
         module = self.module_dict[module_name]

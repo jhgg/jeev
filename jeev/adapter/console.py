@@ -14,20 +14,36 @@ class ConsoleAdapter(object):
         self.user = opts.get('consoleUser', 'user')
 
     def read_stdin(self):
-        sys.stdout.write("[Jeev Console Adapater]\n")
+        self.stdout.write(">>> Jeev Console Adapater\n")
+        self.stdout.write(">>> Switch channel using \c channel_name\n")
+        self.stdout.write(">>> Switch channel using \u user_name\n")
+        self.stdout.flush()
+        
         while True:
-            sys.stdout.write('> ')
-            sys.stdout.flush()
+            self.stdout.write('[%s@%s] > ' % (self.user, self.channel))
+            self.stdout.flush()
 
             line = self.stdin.readline()
             if not line:
                 break
 
-            message = Message({}, self.channel, self.user, line.strip())
-            self.jeev.handle_message(message)
+            if line.startswith('\c'):
+                self.channel = line[2:].strip().lstrip('#')
+                self.stdout.write("Switched channel to #%s\n" % self.channel)
+                self.stdout.flush()
+
+            elif line.startswith('\u'):
+                self.user = line[2:].strip()
+                self.stdout.write("Switched user %s\n" % self.user)
+                self.stdout.flush()
+
+            else:
+                message = Message({}, self.channel, self.user, line.strip())
+                self.jeev.handle_message(message)
 
     def start(self):
         self.stdin = FileObject(sys.stdin)
+        self.stdout = FileObject(sys.stdout)
         self.reader.start()
 
     def stop(self):
@@ -37,10 +53,9 @@ class ConsoleAdapter(object):
         self.reader.join()
 
     def send_message(self, channel, message):
-        sys.stdout.write('\r')
-        sys.stdout.write('< [#%s] %s' % (channel, message))
-        sys.stdout.write('\n> ')
-        sys.stdout.flush()
+        self.stdout.write('\r< [#%s] %s\n' % (channel, message))
+        self.stdout.write('[%s@%s] > ' % (self.user, self.channel))
+        self.stdout.flush()
 
     def send_messages(self, channel, *messages):
         for message in messages:

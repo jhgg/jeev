@@ -1,7 +1,11 @@
+import logging
 import re
 import gevent
+import time
 from adapter import get_by_name
 from .module import Modules
+
+logger = logging.getLogger('jeev.jeev')
 
 
 class Jeev(object):
@@ -29,9 +33,15 @@ class Jeev(object):
         return getattr(self.config, 'name', 'Jeev')
 
     def _handle_message(self, message):
+        logger.debug("Incoming message %r", message)
+        start = time.time()
+
         message.jeev = self
         message.targeting_jeev = bool(self.targeting_me_re.match(message.message))
         self.modules.handle_message(message)
+        end = time.time()
+
+        logger.debug("Took %.5f seconds to handle message %r", end - start, message)
 
     def send_message(self, channel, message):
         self.adapter.send_message(channel, message)
