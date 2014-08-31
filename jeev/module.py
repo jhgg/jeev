@@ -63,6 +63,9 @@ class Modules(object):
             sys.modules.pop('module')
             sys.modules.pop(name, None)
 
+    def get_module(self, name, default=None):
+        return self.module_dict.get(name, default)
+
     def handle_message(self, message):
         for module in self.module_list:
             module.handle_message(message)
@@ -81,6 +84,7 @@ class Module(object):
         self._loaded_callbacks = []
         self._unload_callbacks = []
         self._running_greenlets = set()
+        self._app = None
         self.jeev = None
         self.opts = None
 
@@ -92,6 +96,7 @@ class Module(object):
         self._loaded_callbacks[:] = []
         self._message_listeners[:] = []
         self._commands.clear()
+        self._app = None
         self.jeev = None
         self.opts = None
 
@@ -103,6 +108,21 @@ class Module(object):
         self.opts = opts
         for f in self._loaded_callbacks:
             f(self)
+
+    @property
+    def is_web(self):
+        return self._app is not None
+
+    @property
+    def app(self):
+        if self._app is None:
+            self._app = self.make_app()
+
+        return self._app
+
+    def make_app(self):
+        import flask
+        return flask.Flask('modules.%s' % self.name)
 
     def loaded(self, f):
         """

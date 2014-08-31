@@ -3,6 +3,7 @@ import re
 import gevent
 import time
 from adapter import get_by_name
+from .web import Web
 from .module import Modules
 
 logger = logging.getLogger('jeev.jeev')
@@ -14,10 +15,15 @@ class Jeev(object):
         self.adapter = get_by_name(config.adapter)(self, config.adapterOpts)
         self.modules = Modules(self)
         self.targeting_me_re = re.compile('^%s[%s]' % (re.escape(self.name.lower()), re.escape('!:, ')), re.I)
+        self.web = None
 
     def run(self, auto_join=True):
         self.adapter.start()
         self.modules.load_all()
+
+        if getattr(self.config, 'web', False):
+            self.web = Web(self)
+            self.web.start()
 
         # If we are the main greenlet, chances are we probably want to never return,
         # so the main greenlet won't exit, and tear down everything with it.
