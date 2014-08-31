@@ -23,7 +23,7 @@ class Message(object):
         self.jeev.send_attachment(self.channel, *attachment)
 
     def reply_random(self, choices):
-        self.jeev.reply_to_user(random.choice(choices))
+        self.reply_to_user(random.choice(choices))
 
     def reply_with_one_of(self, *choices):
         self.reply_random(choices)
