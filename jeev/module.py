@@ -159,6 +159,14 @@ class Module(object):
         g.start_later(0)
         return g
 
+    def spawn_after(self, delay, f, *args, **kwargs):
+        g = gevent.Greenlet(f, *args, **kwargs)
+        g.link_exception(self.on_error)
+        g.link(lambda v: self.running_greenlets.discard(g))
+        self.running_greenlets.add(g)
+        g.start_later(delay)
+        return g
+
     def call_f(self, f, *args, **kwargs):
         try:
             logger.debug("calling %r with %r %r)", f, args, kwargs)
