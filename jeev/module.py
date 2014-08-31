@@ -1,5 +1,7 @@
 from collections import defaultdict
 import bisect
+from functools import wraps
+import functools
 from importlib import import_module
 import re
 import gevent
@@ -52,6 +54,7 @@ class Module(object):
         self.commands = defaultdict(list)
         self.regex_listeners = []
         self.respond_regex_listeners = []
+        self.loaded_callbacks = []
 
     def _register(self, modules, opts):
         self.jeev = modules.jeev
@@ -59,7 +62,11 @@ class Module(object):
         self.register()
 
     def register(self):
-        pass
+        for f in self.loaded_callbacks:
+            f(self)
+
+    def loaded(self, f):
+        self.loaded_callbacks.append(f)
 
     def command(self, command, priority=0):
         def bind_command(f):
@@ -86,8 +93,21 @@ class Module(object):
 
         return bind_matcher
 
-    def async(self, sync_ret_val=None):
-        def wrapper(f):
+    def listen(self, priority=0):
+        def bind_listener(f):
+            bisect.insort(self.message_listeners, (priority, f))
+
+        return bind_listener
+
+    def async(self, sync_ret_val=None, timeout=0):
+        def wrapper(o_fn):
+            if timeout:
+                f = functools.partial(gevent.with_timeout, timeout, o_fn, timeout_value=sync_ret_val)
+
+            else:
+                f = o_fn
+
+            @functools.wraps(o_fn)
             def wrapped(*args, **kwargs):
                 g = gevent.Greenlet(f, *args, **kwargs)
                 g.link_exception(self.on_error)
@@ -106,6 +126,10 @@ class Module(object):
             self.on_error(e)
 
     def handle_message(self, message):
+        for _, f in self.message_listeners:
+            if self.call_f(f, message) is self.STOP:
+                return
+
         if message.message_parts:
 
             command = message.message_parts[0]

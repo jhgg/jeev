@@ -62,13 +62,15 @@ class SlackAdapter(object):
             self.send_message(channel, message)
 
     def send_attachment(self, channel, *attachments):
-        if channel not in self.channel_id_cache:
-            return
+        if channel in self.channel_id_cache:
+            channel = self.channel_id_cache[channel]
+        elif not channel.startswith('#'):
+            channel = '#' + channel
 
         args = {
             'username': self.jeev.name,
             'link_names': self.opts.get('linkNames', False),
-            'channel': self.channel_id_cache[channel],
+            'channel': channel,
             'attachments': [a.serialize() for a in attachments]
         }
 
