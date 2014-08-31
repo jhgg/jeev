@@ -25,13 +25,20 @@ class Modules(object):
 
         try:
             logger.debug("Loading module %s", module_name)
-            module_obj = Module(module_name)
-            self._import_module(module_name, module_obj)
+
+            module_instance = Module(module_name)
+            imported_module = self._import_module(module_name, module_instance)
+
+            module_instance.author = getattr(
+                imported_module, 'author', getattr(imported_module, '__author__', None))
+
+            module_instance.description = getattr(
+                imported_module, 'description', getattr(imported_module, '__doc__', None))
 
             logger.debug("Registering module %s", module_name)
-            module_obj._register(self, opts)
-            self.module_list.append(module_obj)
-            self.module_dict[module_name] = module_obj
+            module_instance._register(self, opts)
+            self.module_list.append(module_instance)
+            self.module_dict[module_name] = module_instance
 
             logger.info("Lodaed module %s", module_name)
 
@@ -68,47 +75,54 @@ class Module(object):
         self.name = name
         self.author = author
         self.description = description
-        self.commands = defaultdict(list)
-        self.message_listeners = []
-        self.regex_listeners = []
-        self.loaded_callbacks = []
-        self.unload_callbacks = []
-        self.running_greenlets = set()
+        self._commands = defaultdict(list)
+        self._message_listeners = []
+        self._regex_listeners = []
+        self._loaded_callbacks = []
+        self._unload_callbacks = []
+        self._running_greenlets = set()
         self.jeev = None
         self.opts = None
 
     def _unload(self):
-        for callback in self.unload_callbacks:
+        for callback in self._unload_callbacks:
             callback(self)
 
-        self.regex_listeners[:] = []
-        self.loaded_callbacks[:] = []
-        self.message_listeners[:] = []
-        self.commands.clear()
+        self._regex_listeners[:] = []
+        self._loaded_callbacks[:] = []
+        self._message_listeners[:] = []
+        self._commands.clear()
         self.jeev = None
         self.opts = None
 
-        gevent.killall(list(self.running_greenlets), block=False)
-        self.running_greenlets.clear()
+        gevent.killall(list(self._running_greenlets), block=False)
+        self._running_greenlets.clear()
 
     def _register(self, modules, opts):
         self.jeev = modules.jeev
         self.opts = opts
-        self.register()
-
-    def register(self):
-        for f in self.loaded_callbacks:
+        for f in self._loaded_callbacks:
             f(self)
 
     def loaded(self, f):
-        self.loaded_callbacks.append(f)
+        """
+            Register a function to be called when the module is loaded.
+        """
+        self._loaded_callbacks.append(f)
 
     def unload(self, f):
-        self.unload_callbacks.append(f)
+        """
+            Register a function to be called before the module is unloaded.
+        """
+
+        self._unload_callbacks.append(f)
 
     def command(self, command, priority=0):
+        """
+            Register a command handler.
+        """
         def bind_command(f):
-            bisect.insort(self.commands[command], (priority, f))
+            bisect.insort(self._commands[command], (priority, f))
 
         return bind_command
 
@@ -116,7 +130,7 @@ class Module(object):
         regex = re.compile(regex, flags)
 
         def bind_matcher(f):
-            bisect.insort(self.regex_listeners, (priority, regex, False, f))
+            bisect.insort(self._regex_listeners, (priority, regex, False, f))
 
         return bind_matcher
 
@@ -127,13 +141,13 @@ class Module(object):
         regex = re.compile(regex, flags)
 
         def bind_matcher(f):
-            bisect.insort(self.regex_listeners, (priority, regex, True, f))
+            bisect.insort(self._regex_listeners, (priority, regex, True, f))
 
         return bind_matcher
 
     def listen(self, priority=0):
         def bind_listener(f):
-            bisect.insort(self.message_listeners, (priority, f))
+            bisect.insort(self._message_listeners, (priority, f))
 
         return bind_listener
 
@@ -149,8 +163,8 @@ class Module(object):
             def wrapped(*args, **kwargs):
                 g = gevent.Greenlet(f, *args, **kwargs)
                 g.link_exception(self.on_error)
-                g.link(lambda v: self.running_greenlets.discard(g))
-                self.running_greenlets.add(g)
+                g.link(lambda v: self._running_greenlets.discard(g))
+                self._running_greenlets.add(g)
                 g.start_later(0)
                 return sync_ret_val
 
@@ -161,16 +175,16 @@ class Module(object):
     def spawn(self, f, *args, **kwargs):
         g = gevent.Greenlet(f, *args, **kwargs)
         g.link_exception(self.on_error)
-        g.link(lambda v: self.running_greenlets.discard(g))
-        self.running_greenlets.add(g)
+        g.link(lambda v: self._running_greenlets.discard(g))
+        self._running_greenlets.add(g)
         g.start_later(0)
         return g
 
     def spawn_after(self, delay, f, *args, **kwargs):
         g = gevent.Greenlet(f, *args, **kwargs)
         g.link_exception(self.on_error)
-        g.link(lambda v: self.running_greenlets.discard(g))
-        self.running_greenlets.add(g)
+        g.link(lambda v: self._running_greenlets.discard(g))
+        self._running_greenlets.add(g)
         g.start_later(delay)
         return g
 
@@ -182,19 +196,19 @@ class Module(object):
             self.on_error(e)
 
     def handle_message(self, message):
-        for _, f in self.message_listeners:
+        for _, f in self._message_listeners:
             if self.call_f(f, message) is self.STOP:
                 return
 
         if message.message_parts:
 
             command = message.message_parts[0]
-            if command in self.commands:
-                for _, f in self.commands[command]:
+            if command in self._commands:
+                for _, f in self._commands[command]:
                     if self.call_f(f, message) is self.STOP:
                         return
 
-            for _, regex, responder, f in self.regex_listeners:
+            for _, regex, responder, f in self._regex_listeners:
                 if responder and not message.targeting_jeev:
                     continue
 
