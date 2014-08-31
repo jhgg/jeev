@@ -5,7 +5,7 @@ import module
 
 
 @module.respond('what should i eat')
-@module.async()
+@module.async(timeout=5)
 def dinner(message):
     response = requests.get('http://whatthefuckshouldimakefordinner.com/')
     if response.status_code == requests.codes.ok:
