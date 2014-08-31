@@ -15,17 +15,20 @@ class Jeev(object):
         self.modules = Modules(self)
         self.targeting_me_re = re.compile('^%s[%s]' % (re.escape(self.name.lower()), re.escape('!:, ')), re.I)
 
-    def run(self, join=True):
+    def run(self, auto_join=True):
         self.adapter.start()
         self.modules.load_all()
 
-        if join:
+        # If we are the main greenlet, chances are we probably want to never return,
+        # so the main greenlet won't exit, and tear down everything with it.
+        if auto_join and gevent.get_hub().parent == gevent.getcurrent():
             self.join()
 
     def join(self):
         self.adapter.join()
 
     def handle_message(self, message):
+        # Schedule the handling of the message to occur during the next iteration of the event loop.
         gevent.spawn_later(0, self._handle_message, message)
 
     @property

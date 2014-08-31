@@ -10,5 +10,7 @@ __author__ = 'mac'
 
 def run(config):
     logging.basicConfig(**getattr(config, 'logging', {}))
+
     j = Jeev(config)
     j.run()
+    return j
