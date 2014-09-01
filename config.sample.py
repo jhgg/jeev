@@ -18,3 +18,5 @@ webOpts = {
     'listenHost': 'localhost',
     'listenPort': 8080
 }
+
+moduleDataPath = './shelve'

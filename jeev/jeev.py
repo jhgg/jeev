@@ -1,10 +1,12 @@
 import logging
+import os
 import re
 import gevent
 import time
 from adapter import get_by_name
 from .web import Web
 from .module import Modules
+import shelve
 
 logger = logging.getLogger('jeev.jeev')
 
@@ -14,6 +16,7 @@ class Jeev(object):
         self.config = config
         self.adapter = get_by_name(config.adapter)(self, config.adapterOpts)
         self.modules = Modules(self)
+        self.module_data_path = config.moduleDataPath
         self.targeting_me_re = re.compile('^%s[%s]' % (re.escape(self.name.lower()), re.escape('!:, ')), re.I)
         self.web = None
 
@@ -25,7 +28,7 @@ class Jeev(object):
         logger.debug("Incoming message %r", message)
         start = time.time()
 
-        message.jeev = self
+        message._jeev = self
         message.targeting_jeev = bool(self.targeting_me_re.match(message.message))
         self.modules._handle_message(message)
         end = time.time()
@@ -37,6 +40,9 @@ class Jeev(object):
         return getattr(self.config, 'name', 'Jeev')
 
     def run(self, auto_join=True):
+        if not os.path.exists(self.module_data_path):
+            os.makedirs(self.module_data_path)
+
         self.adapter.start()
         self.modules.load_all()
 
@@ -52,6 +58,14 @@ class Jeev(object):
     def join(self):
         self.adapter.join()
 
+    def stop(self):
+        self.modules.unload_all()
+        if self.web:
+            self.web.stop()
+            self.web = None
+
+        self.adapter.stop()
+
     def send_message(self, channel, message):
         self.adapter.send_message(channel, message)
 
@@ -65,3 +79,6 @@ class Jeev(object):
 
     def on_module_error(self, module, e):
         print module, e
+
+    def get_module_data(self, module):
+        return shelve.open(os.path.join(self.module_data_path, module.name) + '.db', writeback=True)

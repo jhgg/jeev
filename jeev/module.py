@@ -82,6 +82,10 @@ class Modules(object):
         """
         return self.module_dict.get(name, default)
 
+    def unload_all(self):
+        for module in self.module_dict.keys():
+            self.unload(module)
+
 
 class Module(object):
     STOP = object()
@@ -96,6 +100,7 @@ class Module(object):
         self._loaded_callbacks = []
         self._unload_callbacks = []
         self._running_greenlets = set()
+        self._data = None
         self._app = None
         self.jeev = None
         self.opts = None
@@ -108,6 +113,7 @@ class Module(object):
         self._loaded_callbacks[:] = []
         self._message_listeners[:] = []
         self._commands.clear()
+        self._save_data(close=True)
         self._app = None
         self.jeev = None
         self.opts = None
@@ -174,6 +180,24 @@ class Module(object):
         import flask
 
         return flask.Flask('modules.%s' % self.name)
+
+    def _save_data(self, close=False):
+        if self._data:
+            if close:
+                self._data.close()
+                self._data = None
+            else:
+                self._data.sync()
+
+    def _load_data(self):
+        return self.jeev.get_module_data(self)
+
+    @property
+    def data(self):
+        if self._data is None:
+            self._data = self._load_data()
+
+        return self._data
 
     def loaded(self, f):
         """
