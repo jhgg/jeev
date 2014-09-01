@@ -194,6 +194,9 @@ class Module(object):
 
     @property
     def data(self):
+        """
+            Persistent data store. Is really just a convenience accessor to a shelve.
+        """
         if self._data is None:
             self._data = self._load_data()
 

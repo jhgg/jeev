@@ -13,9 +13,9 @@ def index():
                     ''.format(m=module), mimetype='text/plain')
 
 
-# Below is an example showing sharing a resource (in this case "store" between
-# The web handler and the chat responder.
-
+# Below shows the sharing of resources between web / chat.
+# We use `module.data` to store persistent data that will exist
+# between restarts.
 
 @module.app.route('/<key>')
 def get_key(key):
