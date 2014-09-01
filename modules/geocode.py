@@ -2,6 +2,7 @@ from jeev.message import Attachment
 from utils.importing import import_dotted_path
 import module
 
+
 @module.loaded
 def loaded(module):
     module.g.geocoder = import_dotted_path(module.opts['using'])()

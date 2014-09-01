@@ -113,7 +113,7 @@ class Module(object):
 
     def _unload(self):
         for callback in self._unload_callbacks:
-            callback(self)
+            self._call_function(callback, self)
 
         self._regex_listeners[:] = []
         self._loaded_callbacks[:] = []
@@ -131,10 +131,10 @@ class Module(object):
     def _register(self, modules, opts):
         self.jeev = modules.jeev
         self.opts = opts
-        for f in self._loaded_callbacks:
-            f(self)
+        for callback in self._loaded_callbacks:
+            self._call_function(callback, self)
 
-    def _call_f(self, f, *args, **kwargs):
+    def _call_function(self, f, *args, **kwargs):
         try:
             logger.debug("calling %r with %r %r)", f, args, kwargs)
             return f(*args, **kwargs)
@@ -143,7 +143,7 @@ class Module(object):
 
     def _handle_message(self, message):
         for _, f in self._message_listeners:
-            if self._call_f(f, message) is self.STOP:
+            if self._call_function(f, message) is self.STOP:
                 return
 
         if message.message_parts:
@@ -151,7 +151,7 @@ class Module(object):
             command = message.message_parts[0]
             if command in self._commands:
                 for _, f in self._commands[command]:
-                    if self._call_f(f, message) is self.STOP:
+                    if self._call_function(f, message) is self.STOP:
                         return
 
             for _, regex, responder, f in self._regex_listeners:
@@ -167,7 +167,7 @@ class Module(object):
                     else:
                         args = match.groups()
 
-                    if self._call_f(f, message, *args, **kwargs) is self.STOP:
+                    if self._call_function(f, message, *args, **kwargs) is self.STOP:
                         return
 
     def _on_error(self, e):
