@@ -11,13 +11,16 @@ logger = logging.getLogger('jeev.module')
 
 
 class Modules(object):
+    """
+        Holds all the loaded modules for a given Jeev instance.
+    """
     def __init__(self, jeev):
         self.jeev = jeev
-        self.module_list = []
-        self.module_dict = {}
+        self._module_list = []
+        self._module_dict = {}
 
     def _handle_message(self, message):
-        for module in self.module_list:
+        for module in self._module_list:
             module._handle_message(message)
 
     def _import_module(self, name, module_instance):
@@ -42,7 +45,7 @@ class Modules(object):
         """
             Load a module by name.
         """
-        if module_name in self.module_dict:
+        if module_name in self._module_dict:
             raise RuntimeError("Trying to load duplicate module!")
 
         try:
@@ -59,8 +62,8 @@ class Modules(object):
 
             logger.debug("Registering module %s", module_name)
             module_instance._register(self, opts)
-            self.module_list.append(module_instance)
-            self.module_dict[module_name] = module_instance
+            self._module_list.append(module_instance)
+            self._module_dict[module_name] = module_instance
 
             logger.info("Lodaed module %s", module_name)
 
@@ -72,23 +75,41 @@ class Modules(object):
         """
             Unload a module by name.
         """
-        module = self.module_dict[module_name]
+        module = self._module_dict[module_name]
         module._unload()
-        del self.module_dict[module_name]
-        self.module_list.remove(module)
+        del self._module_dict[module_name]
+        self._module_list.remove(module)
 
     def get_module(self, name, default=None):
         """
             Gets a module by name.
         """
-        return self.module_dict.get(name, default)
+        return self._module_dict.get(name, default)
 
     def unload_all(self):
-        for module in self.module_dict.keys():
+        """
+            Unloads all modules.
+        """
+        for module in self._module_dict.keys():
             self.unload(module)
 
 
 class Module(object):
+    """
+        The brains of a Jeev module.
+
+        This class is not subclassed, but rather is imported from a module's file, and then used to bind events and
+        handlers to by using decorator functions. The injection magic happens in `Modules.load`.
+
+        A simple module that replies teo hello would look like this:
+
+        import module
+
+        @module.hear('hello')
+        def hello(message):
+            message.reply_to_user('hey!')
+
+    """
     STOP = object()
     __slots__ = ['jeev', 'opts', 'name', 'author', 'description',
                  '_commands', '_message_listeners', '_regex_listeners', '_loaded_callbacks', '_unload_callbacks',

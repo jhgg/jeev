@@ -2,10 +2,10 @@ import random
 
 
 class Message(object):
+    """
+        Represents an incoming message.
+    """
     __slots__ = ['user', 'message', 'message_parts', 'channel', '_meta', '_jeev', 'targeting_jeev']
-
-    targeting_jeev = False
-    _jeev = None
 
     def __init__(self, meta, channel, user, message):
         self.channel = channel
@@ -13,6 +13,8 @@ class Message(object):
         self.message = message
         self.message_parts = message.split()
         self._meta = meta
+        self._jeev = None
+        self.targeting_jeev = False
 
     def __repr__(self):
         return "<Message user: {m.user}, channel: {m.channel}, message: {m.message}>".format(m=self)

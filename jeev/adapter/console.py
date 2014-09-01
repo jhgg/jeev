@@ -5,6 +5,10 @@ from ..message import Message
 
 
 class ConsoleAdapter(object):
+    """
+        This adapter will run Jeev in console mode, listening to stdin for messages,
+        and writing outgoing messages to stdout.
+    """
     def __init__(self, jeev, opts):
         self._jeev = jeev
         self._opts = opts

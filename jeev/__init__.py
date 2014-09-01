@@ -13,6 +13,8 @@ def run(config):
     j = Jeev(config)
 
     try:
-        j.run()
+        j.run(auto_join=False)
+        j.join()
+
     except KeyboardInterrupt:
         j.stop()

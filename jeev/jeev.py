@@ -72,13 +72,13 @@ class Jeev(object):
         if not os.path.exists(self.module_data_path):
             os.makedirs(self.module_data_path)
 
-        self.adapter.start()
         self.modules.load_all()
 
         if getattr(self.config, 'web', False):
             self._web = Web(self)
             self._web.start()
 
+        self.adapter.start()
         self._running = True
 
         # If we are the main greenlet, chances are we probably want to never return,

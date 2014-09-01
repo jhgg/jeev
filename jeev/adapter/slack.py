@@ -6,6 +6,11 @@ from ..message import Message
 
 
 class SlackAdapter(object):
+    """
+        This adapter exposes a webhook that listens for slack messages.
+
+        The web listener for this is independent of Jeev's WSGI server. They cannot run on the same port.
+    """
     def __init__(self, jeev, opts):
         self._jeev = jeev
         self._opts = opts

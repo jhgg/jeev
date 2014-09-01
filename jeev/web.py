@@ -7,6 +7,10 @@ logger = logging.getLogger('jeev.web')
 
 
 class Web(object):
+    """
+        Jeev's WSGI server. Routes requests to their appropriate module. See `jeev.module.Module.app` for more
+        details.
+    """
     _url_map = Map([
         Rule('/<module>/', endpoint='module', defaults={'rest': ''}),
         Rule('/<module>/<path:rest>', endpoint='module')
