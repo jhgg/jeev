@@ -42,7 +42,7 @@ class SlackAdapter(object):
         if data['token'] == self.opts['token'] and data['team_domain'] == self.opts['teamName']:
             self.channel_id_cache[data['channel_name']] = data['channel_id']
             message = Message(data, data['channel_name'], data['user_name'], data['text'])
-            self.jeev.handle_message(message)
+            self.jeev._handle_message(message)
 
     def send_message(self, channel, message):
         if channel not in self.channel_id_cache:

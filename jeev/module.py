@@ -16,10 +16,16 @@ class Modules(object):
         self.module_dict = {}
 
     def load_all(self):
+        """
+            Loads all the modules defined in Jeev's configuration
+        """
         for module_name, opts in getattr(self.jeev.config, 'modules', {}).iteritems():
             self.load(module_name, opts)
 
     def load(self, module_name, opts):
+        """
+            Load a module by name.
+        """
         if module_name in self.module_dict:
             raise RuntimeError("Trying to load duplicate module!")
 
@@ -47,6 +53,9 @@ class Modules(object):
             raise e
 
     def unload(self, module_name):
+        """
+            Unload a module by name.
+        """
         module = self.module_dict[module_name]
         module._unload()
         del self.module_dict[module_name]
@@ -64,11 +73,14 @@ class Modules(object):
             sys.modules.pop(name, None)
 
     def get_module(self, name, default=None):
+        """
+            Gets a module by name.
+        """
         return self.module_dict.get(name, default)
 
-    def handle_message(self, message):
+    def _handle_message(self, message):
         for module in self.module_list:
-            module.handle_message(message)
+            module._handle_message(message)
 
 
 class Module(object):
@@ -109,21 +121,6 @@ class Module(object):
         for f in self._loaded_callbacks:
             f(self)
 
-    @property
-    def is_web(self):
-        return self._app is not None
-
-    @property
-    def app(self):
-        if self._app is None:
-            self._app = self.make_app()
-
-        return self._app
-
-    def make_app(self):
-        import flask
-        return flask.Flask('modules.%s' % self.name)
-
     def loaded(self, f):
         """
             Register a function to be called when the module is loaded.
@@ -141,12 +138,16 @@ class Module(object):
         """
             Register a command handler.
         """
+
         def bind_command(f):
             bisect.insort(self._commands[command], (priority, f))
 
         return bind_command
 
     def match(self, regex, flags=0, priority=0):
+        """
+            Decorator that registers a function that will be called when Jeev sees a message that matches regex.
+        """
         regex = re.compile(regex, flags)
 
         def bind_matcher(f):
@@ -154,10 +155,16 @@ class Module(object):
 
         return bind_matcher
 
-    def hear(self, regex, flags=re.I, priority=0):
-        return self.match(regex, flags, priority)
+    def hear(self, regex, priority=0):
+        """
+            Same as match, except case insensitive matching.
+        """
+        return self.match(regex, re.I, priority)
 
     def respond(self, regex, flags=re.I, priority=0):
+        """
+            Decorator that registers a function that will be called when any message directed at Jeev matches the regex.
+        """
         regex = re.compile(regex, flags)
 
         def bind_matcher(f):
@@ -166,12 +173,19 @@ class Module(object):
         return bind_matcher
 
     def listen(self, priority=0):
+        """
+            Decorator that registers a function that will be called any time Jeev sees a message.
+        """
         def bind_listener(f):
             bisect.insort(self._message_listeners, (priority, f))
 
         return bind_listener
 
     def async(self, sync_ret_val=None, timeout=0):
+        """
+            Decorator that will call the wrapped function inside a greenlet, and do some book-keeping to make
+            sure the greenlet is killed when the module is unloaded.
+        """
         def wrapper(o_fn):
             if timeout:
                 f = functools.partial(gevent.with_timeout, timeout, o_fn, timeout_value=sync_ret_val)
@@ -182,7 +196,7 @@ class Module(object):
             @functools.wraps(o_fn)
             def wrapped(*args, **kwargs):
                 g = gevent.Greenlet(f, *args, **kwargs)
-                g.link_exception(self.on_error)
+                g.link_exception(self._on_error)
                 g.link(lambda v: self._running_greenlets.discard(g))
                 self._running_greenlets.add(g)
                 g.start_later(0)
@@ -193,31 +207,38 @@ class Module(object):
         return wrapper
 
     def spawn(self, f, *args, **kwargs):
+        """
+            Spawns a greenlet and does some book-keeping to make sure the greenlet is killed when the module is
+            unloaded.
+        """
         g = gevent.Greenlet(f, *args, **kwargs)
-        g.link_exception(self.on_error)
+        g.link_exception(self._on_error)
         g.link(lambda v: self._running_greenlets.discard(g))
         self._running_greenlets.add(g)
         g.start_later(0)
         return g
 
     def spawn_after(self, delay, f, *args, **kwargs):
+        """
+            Spawns a greenlet that will start after delay seconds. Otherwise, same as Module.spawn
+        """
         g = gevent.Greenlet(f, *args, **kwargs)
-        g.link_exception(self.on_error)
+        g.link_exception(self._on_error)
         g.link(lambda v: self._running_greenlets.discard(g))
         self._running_greenlets.add(g)
         g.start_later(delay)
         return g
 
-    def call_f(self, f, *args, **kwargs):
+    def _call_f(self, f, *args, **kwargs):
         try:
             logger.debug("calling %r with %r %r)", f, args, kwargs)
             return f(*args, **kwargs)
         except Exception, e:
-            self.on_error(e)
+            self._on_error(e)
 
-    def handle_message(self, message):
+    def _handle_message(self, message):
         for _, f in self._message_listeners:
-            if self.call_f(f, message) is self.STOP:
+            if self._call_f(f, message) is self.STOP:
                 return
 
         if message.message_parts:
@@ -225,7 +246,7 @@ class Module(object):
             command = message.message_parts[0]
             if command in self._commands:
                 for _, f in self._commands[command]:
-                    if self.call_f(f, message) is self.STOP:
+                    if self._call_f(f, message) is self.STOP:
                         return
 
             for _, regex, responder, f in self._regex_listeners:
@@ -241,12 +262,68 @@ class Module(object):
                     else:
                         args = match.groups()
 
-                    if self.call_f(f, message, *args, **kwargs) is self.STOP:
+                    if self._call_f(f, message, *args, **kwargs) is self.STOP:
                         return
 
-    def on_error(self, e):
+    def _on_error(self, e):
+        """
+            Called when an error happens by something this module called.
+        """
         if isinstance(e, gevent.Greenlet):
             e = e.exception
 
         self.jeev.on_module_error(self, e)
         logger.exception("Exception raised %r", e)
+
+    @property
+    def is_web(self):
+        """
+            Returns True if the module has a web application bound to it.
+        """
+        return self._app is not None
+
+    @property
+    def app(self):
+        """
+            Initializes or returns the wsgi handler for this module.
+            Will call module._make_app if the handler hasn't been created yet.
+        """
+        if self._app is None:
+            self._app = self._make_app()
+
+        return self._app
+
+    @app.setter
+    def app(self, value):
+        """
+            Sets the underlying wsgi handler for the module. Won't allow it to be set twice.
+        """
+        if self._app is not None:
+            raise AttributeError("Module.app has already been set.")
+
+        self._app = value
+
+    def set_wsgi_handler(self, f):
+        """
+            Use this to set the wsgi handler for the module (can be used as a decorator):
+
+            @module.set_wsgi_handler
+            def handle(environ, start_response):
+                start_response('200 OK', [])
+                return ['Hello World!']
+        """
+        self.app = f
+
+    def _make_app(self):
+        """
+            Make's a flask application to be the wsgi handler of this module.
+        """
+        import flask
+
+        return flask.Flask('modules.%s' % self.name)
+
+    def send_message(self, channel, message):
+        """
+            Convenience function to send a message to a channel.
+        """
+        self.jeev.send_message(channel, message)

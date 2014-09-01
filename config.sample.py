@@ -12,3 +12,9 @@ modules = {
     'decide': {},
     'sudo': {}
 }
+
+web = True
+webOpts = {
+    'listenHost': 'localhost',
+    'listenPort': 8080
+}

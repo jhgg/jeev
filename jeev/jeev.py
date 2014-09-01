@@ -33,21 +33,21 @@ class Jeev(object):
     def join(self):
         self.adapter.join()
 
-    def handle_message(self, message):
+    def _handle_message(self, message):
         # Schedule the handling of the message to occur during the next iteration of the event loop.
-        gevent.spawn_later(0, self._handle_message, message)
+        gevent.spawn_later(0, self.__handle_message, message)
 
     @property
     def name(self):
         return getattr(self.config, 'name', 'Jeev')
 
-    def _handle_message(self, message):
+    def __handle_message(self, message):
         logger.debug("Incoming message %r", message)
         start = time.time()
 
         message.jeev = self
         message.targeting_jeev = bool(self.targeting_me_re.match(message.message))
-        self.modules.handle_message(message)
+        self.modules._handle_message(message)
         end = time.time()
 
         logger.debug("Took %.5f seconds to handle message %r", end - start, message)

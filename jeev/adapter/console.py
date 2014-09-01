@@ -39,7 +39,7 @@ class ConsoleAdapter(object):
 
             else:
                 message = Message({}, self.channel, self.user, line.strip())
-                self.jeev.handle_message(message)
+                self.jeev._handle_message(message)
 
     def start(self):
         self.stdin = FileObject(sys.stdin)
