@@ -9,19 +9,20 @@ class ConsoleAdapter(object):
         self._jeev = jeev
         self._opts = opts
         self._stdin = None
-        self._reader = Greenlet(self._read_stdin)
+        self._stdout = None
+        self._reader = None
         self._channel = opts.get('consoleChannel', 'console')
         self._user = opts.get('consoleUser', 'user')
 
     def _read_stdin(self):
-        self.stdout.write(">>> Jeev Console Adapater\n")
-        self.stdout.write(">>> Switch channel using \c channel_name\n")
-        self.stdout.write(">>> Switch channel using \u user_name\n")
-        self.stdout.flush()
+        self._stdout.write(">>> Jeev Console Adapater\n")
+        self._stdout.write(">>> Switch channel using \c channel_name\n")
+        self._stdout.write(">>> Switch channel using \u user_name\n")
+        self._stdout.flush()
         
         while True:
-            self.stdout.write('[%s@%s] > ' % (self._user, self._channel))
-            self.stdout.flush()
+            self._stdout.write('[%s@%s] > ' % (self._user, self._channel))
+            self._stdout.flush()
 
             line = self._stdin.readline()
             if not line:
@@ -29,33 +30,35 @@ class ConsoleAdapter(object):
 
             if line.startswith('\c'):
                 self._channel = line[2:].strip().lstrip('#')
-                self.stdout.write("Switched channel to #%s\n" % self._channel)
-                self.stdout.flush()
+                self._stdout.write("Switched channel to #%s\n" % self._channel)
+                self._stdout.flush()
 
             elif line.startswith('\u'):
                 self._user = line[2:].strip()
-                self.stdout.write("Switched user %s\n" % self._user)
-                self.stdout.flush()
+                self._stdout.write("Switched user %s\n" % self._user)
+                self._stdout.flush()
 
             else:
                 message = Message({}, self._channel, self._user, line.strip())
                 self._jeev._handle_message(message)
 
     def start(self):
+        self._reader = Greenlet(self._read_stdin)
         self._stdin = FileObject(sys.stdin)
-        self.stdout = FileObject(sys.stdout)
+        self._stdout = FileObject(sys.stdout)
         self._reader.start()
 
     def stop(self):
-        self._reader.stop()
+        self._reader.kill()
+        self._reader = None
 
     def join(self):
         self._reader.join()
 
     def send_message(self, channel, message):
-        self.stdout.write('\r< [#%s] %s\n' % (channel, message))
-        self.stdout.write('[%s@%s] > ' % (self._user, self._channel))
-        self.stdout.flush()
+        self._stdout.write('\r< [#%s] %s\n' % (channel, message))
+        self._stdout.write('[%s@%s] > ' % (self._user, self._channel))
+        self._stdout.flush()
 
     def send_messages(self, channel, *messages):
         for message in messages:
