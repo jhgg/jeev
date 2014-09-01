@@ -15,18 +15,36 @@ def index():
 
 # Below is an example showing sharing a resource (in this case "store" between
 # The web handler and the chat responder.
-store = {}
 
 
 @module.app.route('/<key>')
 def get_key(key):
-    if key not in store:
+    if key not in module.data:
         abort(404, 'A value for key: %s was not found' % key)
 
-    return Response(store[key], mimetype='text/plain')
+    return Response(module.data[key], mimetype='text/plain')
 
 
 @module.respond('set ([^ ]+) to (.*)$')
 def do_setter(message, key, value):
-    store[key] = value
+    module.data[key] = value
     message.reply_to_user("Done. I set %s to %s" % (key, value))
+
+
+@module.respond('what is ([^ ]+)')
+def do_setter(message, key):
+    if key in module.data:
+        message.reply_to_user('%s is %s' % (key, module.data[key]))
+
+    else:
+        message.reply_to_user("I'm not sure what %s is!" % key)
+
+
+@module.respond('forget about ([^ ]+)')
+def do_setter(message, key):
+    if key in module.data:
+        del module.data[key]
+        message.reply_to_user('Its like %s never existed...' % key)
+
+    else:
+        message.reply_to_user("I'm not sure what %s is anyways!" % key)
