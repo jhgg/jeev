@@ -21,7 +21,7 @@ class ConsoleAdapter(object):
     def _read_stdin(self):
         self._stdout.write(">>> Jeev Console Adapater\n")
         self._stdout.write(">>> Switch channel using \c channel_name\n")
-        self._stdout.write(">>> Switch channel using \u user_name\n")
+        self._stdout.write(">>> Switch user using \u user_name\n")
         self._stdout.flush()
         
         while True:
