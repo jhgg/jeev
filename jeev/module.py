@@ -203,7 +203,9 @@ class Module(object):
 
     def _make_app(self):
         """
-            Make's a flask application to be the wsgi handler of this module.
+            Make a flask application to be the wsgi handler of this module.
+            If you want to use your own WSGI handler, you can simply call `module.set_wsgi_handler(handler)` before
+            accessing `module.app`.
         """
         import flask
 
@@ -384,7 +386,7 @@ class Module(object):
 
         self._app = value
 
-    def set_wsgi_handler(self, f):
+    def set_wsgi_handler(self, handler):
         """
             Use this to set the wsgi handler for the module (can be used as a decorator):
 
@@ -393,7 +395,7 @@ class Module(object):
                 start_response('200 OK', [])
                 return ['Hello World!']
         """
-        self.app = f
+        self.app = handler
 
     def send_message(self, channel, message):
         """
