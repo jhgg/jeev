@@ -5,6 +5,7 @@ import logging
 import re
 import gevent
 import sys
+from utils.ctx import G
 
 logger = logging.getLogger('jeev.module')
 
@@ -89,11 +90,18 @@ class Modules(object):
 
 class Module(object):
     STOP = object()
+    __slots__ = ['jeev', 'opts', 'name', 'author', 'description',
+                 '_commands', '_message_listeners', '_regex_listeners', '_loaded_callbacks', '_unload_callbacks',
+                 '_running_greenlets', '_data', '_app', '_g']
 
     def __init__(self, name, author=None, description=None):
         self.name = name
         self.author = author
         self.description = description
+        self.jeev = None
+        self.opts = None
+
+        self._g = None
         self._commands = defaultdict(list)
         self._message_listeners = []
         self._regex_listeners = []
@@ -102,8 +110,6 @@ class Module(object):
         self._running_greenlets = set()
         self._data = None
         self._app = None
-        self.jeev = None
-        self.opts = None
 
     def _unload(self):
         for callback in self._unload_callbacks:
@@ -114,6 +120,7 @@ class Module(object):
         self._message_listeners[:] = []
         self._commands.clear()
         self._save_data(close=True)
+        self._clean_g()
         self._app = None
         self.jeev = None
         self.opts = None
@@ -192,6 +199,11 @@ class Module(object):
     def _load_data(self):
         return self.jeev.get_module_data(self)
 
+    def _clean_g(self):
+        if self._g:
+            self._g.__dict__.clear()
+            self._g = None
+
     @property
     def data(self):
         """
@@ -201,6 +213,17 @@ class Module(object):
             self._data = self._load_data()
 
         return self._data
+
+    @property
+    def g(self):
+        """
+            Module "globals", useful as a temporary namespace, put whatever you want here, objects, resources,
+            descriptors. G will be cleared when the module is unloaded. If you want to persist data, use `module.data`.
+        """
+        if self._g is None:
+            self._g = G()
+
+        return self._g
 
     def loaded(self, f):
         """
