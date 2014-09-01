@@ -7,28 +7,28 @@ logger = logging.getLogger('jeev.web')
 
 
 class Web(object):
-    url_map = Map([
+    _url_map = Map([
         Rule('/<module>/', endpoint='module', defaults={'rest': ''}),
         Rule('/<module>/<path:rest>', endpoint='module')
     ])
 
     def __init__(self, jeev):
-        self.jeev = jeev
-        self.opts = getattr(jeev.config, 'webOpts', {})
-        self.server = WSGIServer((self.opts['listenHost'], self.opts['listenPort']), self.wsgi_app)
+        self._jeev = jeev
+        self._opts = getattr(jeev.config, 'webOpts', {})
+        self._server = WSGIServer((self._opts['listenHost'], self._opts['listenPort']), self._wsgi_app)
 
-    def wsgi_app(self, environ, start_response):
-        urls = self.url_map.bind_to_environ(environ)
+    def _wsgi_app(self, environ, start_response):
+        urls = self._url_map.bind_to_environ(environ)
         try:
             endpoint, args = urls.match()
-            handler = getattr(self, 'handle_%s' % endpoint)
+            handler = getattr(self, '_handle_%s' % endpoint)
             return handler(args, environ, start_response)
 
         except HTTPException, e:
             return e(environ, start_response)
 
-    def handle_module(self, args, environ, start_response):
-        module = self.jeev.modules.get_module(args['module'])
+    def _handle_module(self, args, environ, start_response):
+        module = self._jeev.modules.get_module(args['module'])
 
         if module and module.is_web:
             original_script_name = environ.get('SCRIPT_NAME', '')
@@ -39,7 +39,7 @@ class Web(object):
         return NotFound()(environ, start_response)
 
     def start(self):
-        self.server.start()
+        self._server.start()
 
     def stop(self):
-        self.server.stop()
+        self._server.stop()

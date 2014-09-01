@@ -15,6 +15,21 @@ class Modules(object):
         self.module_list = []
         self.module_dict = {}
 
+    def _handle_message(self, message):
+        for module in self.module_list:
+            module._handle_message(message)
+
+    def _import_module(self, name, module_instance):
+        name = 'modules.%s' % name
+        try:
+            sys.modules['module'] = module_instance
+            __import__(name)
+            return sys.modules[name]
+
+        finally:
+            sys.modules.pop('module')
+            sys.modules.pop(name, None)
+
     def load_all(self):
         """
             Loads all the modules defined in Jeev's configuration
@@ -61,26 +76,11 @@ class Modules(object):
         del self.module_dict[module_name]
         self.module_list.remove(module)
 
-    def _import_module(self, name, module_instance):
-        name = 'modules.%s' % name
-        try:
-            sys.modules['module'] = module_instance
-            __import__(name)
-            return sys.modules[name]
-
-        finally:
-            sys.modules.pop('module')
-            sys.modules.pop(name, None)
-
     def get_module(self, name, default=None):
         """
             Gets a module by name.
         """
         return self.module_dict.get(name, default)
-
-    def _handle_message(self, message):
-        for module in self.module_list:
-            module._handle_message(message)
 
 
 class Module(object):
@@ -120,6 +120,60 @@ class Module(object):
         self.opts = opts
         for f in self._loaded_callbacks:
             f(self)
+
+    def _call_f(self, f, *args, **kwargs):
+        try:
+            logger.debug("calling %r with %r %r)", f, args, kwargs)
+            return f(*args, **kwargs)
+        except Exception, e:
+            self._on_error(e)
+
+    def _handle_message(self, message):
+        for _, f in self._message_listeners:
+            if self._call_f(f, message) is self.STOP:
+                return
+
+        if message.message_parts:
+
+            command = message.message_parts[0]
+            if command in self._commands:
+                for _, f in self._commands[command]:
+                    if self._call_f(f, message) is self.STOP:
+                        return
+
+            for _, regex, responder, f in self._regex_listeners:
+                if responder and not message.targeting_jeev:
+                    continue
+
+                match = regex.search(message.message)
+                if match:
+                    kwargs = match.groupdict()
+
+                    if kwargs:
+                        args = ()
+                    else:
+                        args = match.groups()
+
+                    if self._call_f(f, message, *args, **kwargs) is self.STOP:
+                        return
+
+    def _on_error(self, e):
+        """
+            Called when an error happens by something this module called.
+        """
+        if isinstance(e, gevent.Greenlet):
+            e = e.exception
+
+        self.jeev.on_module_error(self, e)
+        logger.exception("Exception raised %r", e)
+
+    def _make_app(self):
+        """
+            Make's a flask application to be the wsgi handler of this module.
+        """
+        import flask
+
+        return flask.Flask('modules.%s' % self.name)
 
     def loaded(self, f):
         """
@@ -176,6 +230,7 @@ class Module(object):
         """
             Decorator that registers a function that will be called any time Jeev sees a message.
         """
+
         def bind_listener(f):
             bisect.insort(self._message_listeners, (priority, f))
 
@@ -186,6 +241,7 @@ class Module(object):
             Decorator that will call the wrapped function inside a greenlet, and do some book-keeping to make
             sure the greenlet is killed when the module is unloaded.
         """
+
         def wrapper(o_fn):
             if timeout:
                 f = functools.partial(gevent.with_timeout, timeout, o_fn, timeout_value=sync_ret_val)
@@ -229,52 +285,6 @@ class Module(object):
         g.start_later(delay)
         return g
 
-    def _call_f(self, f, *args, **kwargs):
-        try:
-            logger.debug("calling %r with %r %r)", f, args, kwargs)
-            return f(*args, **kwargs)
-        except Exception, e:
-            self._on_error(e)
-
-    def _handle_message(self, message):
-        for _, f in self._message_listeners:
-            if self._call_f(f, message) is self.STOP:
-                return
-
-        if message.message_parts:
-
-            command = message.message_parts[0]
-            if command in self._commands:
-                for _, f in self._commands[command]:
-                    if self._call_f(f, message) is self.STOP:
-                        return
-
-            for _, regex, responder, f in self._regex_listeners:
-                if responder and not message.targeting_jeev:
-                    continue
-
-                match = regex.search(message.message)
-                if match:
-                    kwargs = match.groupdict()
-
-                    if kwargs:
-                        args = ()
-                    else:
-                        args = match.groups()
-
-                    if self._call_f(f, message, *args, **kwargs) is self.STOP:
-                        return
-
-    def _on_error(self, e):
-        """
-            Called when an error happens by something this module called.
-        """
-        if isinstance(e, gevent.Greenlet):
-            e = e.exception
-
-        self.jeev.on_module_error(self, e)
-        logger.exception("Exception raised %r", e)
-
     @property
     def is_web(self):
         """
@@ -313,14 +323,6 @@ class Module(object):
                 return ['Hello World!']
         """
         self.app = f
-
-    def _make_app(self):
-        """
-            Make's a flask application to be the wsgi handler of this module.
-        """
-        import flask
-
-        return flask.Flask('modules.%s' % self.name)
 
     def send_message(self, channel, message):
         """

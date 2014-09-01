@@ -2,12 +2,12 @@ import random
 
 class Message(object):
     def __init__(self, meta, channel, user, message):
-        self.meta = meta
+        self._meta = meta
         self.channel = channel
         self.user = user
         self.message = message
         self.message_parts = message.split()
-        self.jeev = None
+        self._jeev = None
 
     def __repr__(self):
         return "<Message user: {m.user}, channel: {m.channel}, message: {m.message}>".format(m=self)
@@ -17,10 +17,10 @@ class Message(object):
         self.reply(message)
 
     def reply(self, message):
-        self.jeev.send_message(self.channel, message)
+        self._jeev.send_message(self.channel, message)
 
     def reply_with_attachment(self, *attachment):
-        self.jeev.send_attachment(self.channel, *attachment)
+        self._jeev.send_attachment(self.channel, *attachment)
 
     def reply_random(self, choices):
         self.reply_to_user(random.choice(choices))
@@ -38,7 +38,7 @@ class Attachment(object):
         self.text = text
         self.fallback = fallback or text or pretext
         self._color = 'good'
-        self.fields = fields or []
+        self._fields = fields or []
         self.message_overrides = {}
 
     def serialize(self):
@@ -48,7 +48,7 @@ class Attachment(object):
             'color': self._color,
             'fallback': self.fallback,
             'fields': [
-                f.serialize() for f in self.fields
+                f.serialize() for f in self._fields
             ]
         }
 
@@ -57,7 +57,7 @@ class Attachment(object):
         return self
 
     def field(self, *args, **kwargs):
-        self.fields.append(Attachment.Field(*args, **kwargs))
+        self._fields.append(Attachment.Field(*args, **kwargs))
         return self
 
     def icon(self, icon):
