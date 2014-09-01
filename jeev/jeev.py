@@ -12,24 +12,29 @@ logger = logging.getLogger('jeev.jeev')
 
 
 class Jeev(object):
+    _name = None
+    _web = None
+    _running = False
+    _targeting_me = None
+    _targeting_me_re = None
+
     def __init__(self, config):
         self.config = config
         self.adapter = get_by_name(config.adapter)(self, config.adapterOpts)
         self.modules = Modules(self)
         self.module_data_path = config.moduleDataPath
-        self.targeting_me_re = re.compile('^%s[%s]' % (re.escape(self.name.lower()), re.escape('!:, ')), re.I)
-        self.web = None
+        self.name = getattr(self.config, 'name', 'Jeev')
 
     def _handle_message(self, message):
         # Schedule the handling of the message to occur during the next iteration of the event loop.
-        gevent.spawn_later(0, self.__handle_message, message)
+        gevent.spawn(self.__handle_message, message)
 
     def __handle_message(self, message):
         logger.debug("Incoming message %r", message)
         start = time.time()
 
         message._jeev = self
-        message.targeting_jeev = bool(self.targeting_me_re.match(message.message))
+        message.targeting_jeev = bool(self._targeting_me(message.message))
         self.modules._handle_message(message)
         end = time.time()
 
@@ -37,9 +42,33 @@ class Jeev(object):
 
     @property
     def name(self):
-        return getattr(self.config, 'name', 'Jeev')
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+        self._targeting_me_re = re.compile('^%s[%s]' % (re.escape(self._name.lower()), re.escape('!:, ')), re.I)
+        self._targeting_me = self._targeting_me_re.match
+
+    @property
+    def running(self):
+        return self._running
+
+    @property
+    def stopped(self):
+        return not self._running
 
     def run(self, auto_join=True):
+        """
+            Runs Jeev, loading all the modules, starting the web service, and starting the adapter.
+
+            If auto_join=True, this function will not return, and will run until jeev stops if starting jeev from
+            outside of a greenlet.
+
+        """
+        if self._running:
+            raise RuntimeError("Jeev is already running!")
+
         if not os.path.exists(self.module_data_path):
             os.makedirs(self.module_data_path)
 
@@ -47,8 +76,10 @@ class Jeev(object):
         self.modules.load_all()
 
         if getattr(self.config, 'web', False):
-            self.web = Web(self)
-            self.web.start()
+            self._web = Web(self)
+            self._web.start()
+
+        self._running = True
 
         # If we are the main greenlet, chances are we probably want to never return,
         # so the main greenlet won't exit, and tear down everything with it.
@@ -56,17 +87,37 @@ class Jeev(object):
             self.join()
 
     def join(self):
+        """
+            Blocks until Jeev is stopped.
+        """
+        if not self._running:
+            raise RuntimeError("Jeev is not running!")
+
         self.adapter.join()
 
     def stop(self):
-        self.modules.unload_all()
-        if self.web:
-            self.web.stop()
-            self.web = None
+        """
+            Stops jeev, turning off the web listener, unloading modules, and stopping the adapter.
+        """
+        if not self._running:
+            raise RuntimeError("Jeev is not running!")
 
-        self.adapter.stop()
+        try:
+            self.modules.unload_all()
+
+            if self._web:
+                self._web.stop()
+                self._web = None
+
+            self.adapter.stop()
+
+        finally:
+            self._running = False
 
     def send_message(self, channel, message):
+        """
+            Convenience function to send a message to a channel.
+        """
         self.adapter.send_message(channel, message)
 
     def send_attachment(self, channel, *attachments):

@@ -1,13 +1,18 @@
 import random
 
+
 class Message(object):
+    __slots__ = ['user', 'message', 'message_parts', 'channel', '_meta', '_jeev', 'targeting_jeev']
+
+    targeting_jeev = False
+    _jeev = None
+
     def __init__(self, meta, channel, user, message):
-        self._meta = meta
         self.channel = channel
         self.user = user
         self.message = message
         self.message_parts = message.split()
-        self._jeev = None
+        self._meta = meta
 
     def __repr__(self):
         return "<Message user: {m.user}, channel: {m.channel}, message: {m.message}>".format(m=self)
@@ -32,6 +37,7 @@ class Message(object):
 
 
 class Attachment(object):
+    __slots__ = ['pretext', 'text', 'fallback', '_color', '_fields', '_message_overrides']
 
     def __init__(self, pretext, text="", fallback="", fields=None):
         self.pretext = pretext
@@ -39,7 +45,7 @@ class Attachment(object):
         self.fallback = fallback or text or pretext
         self._color = 'good'
         self._fields = fields or []
-        self.message_overrides = {}
+        self._message_overrides = None
 
     def serialize(self):
         return {
@@ -60,6 +66,17 @@ class Attachment(object):
         self._fields.append(Attachment.Field(*args, **kwargs))
         return self
 
+    @property
+    def message_overrides(self):
+        if self._message_overrides:
+            self._message_overrides = {}
+
+        return self._message_overrides
+
+    @property
+    def has_message_overrides(self):
+        return self._message_overrides is not None
+
     def icon(self, icon):
         self.message_overrides['icon_url'] = icon
         return self
@@ -69,6 +86,8 @@ class Attachment(object):
         return self
 
     class Field(object):
+        __slots__ = ['title', 'value', 'short']
+
         def __init__(self, title, value, short=False):
             self.title = title
             self.value = value

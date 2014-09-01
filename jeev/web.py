@@ -15,7 +15,7 @@ class Web(object):
     def __init__(self, jeev):
         self._jeev = jeev
         self._opts = getattr(jeev.config, 'webOpts', {})
-        self._server = WSGIServer((self._opts['listenHost'], self._opts['listenPort']), self._wsgi_app)
+        self._server = WSGIServer((self._opts['listen_host'], self._opts['listen_port']), self._wsgi_app)
 
     def _wsgi_app(self, environ, start_response):
         urls = self._url_map.bind_to_environ(environ)

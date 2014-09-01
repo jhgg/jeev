@@ -305,7 +305,7 @@ class Module(object):
                 g.link_exception(self._on_error)
                 g.link(lambda v: self._running_greenlets.discard(g))
                 self._running_greenlets.add(g)
-                g.start_later(0)
+                g.start()
                 return sync_ret_val
 
             return wrapped
@@ -321,7 +321,7 @@ class Module(object):
         g.link_exception(self._on_error)
         g.link(lambda v: self._running_greenlets.discard(g))
         self._running_greenlets.add(g)
-        g.start_later(0)
+        g.start()
         return g
 
     def spawn_after(self, delay, f, *args, **kwargs):

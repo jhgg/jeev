@@ -11,8 +11,8 @@ class ConsoleAdapter(object):
         self._stdin = None
         self._stdout = None
         self._reader = None
-        self._channel = opts.get('consoleChannel', 'console')
-        self._user = opts.get('consoleUser', 'user')
+        self._channel = opts.get('console_channel', 'console')
+        self._user = opts.get('console_user', 'user')
 
     def _read_stdin(self):
         self._stdout.write(">>> Jeev Console Adapater\n")
