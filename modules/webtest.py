@@ -19,7 +19,7 @@ def index():
 
 @module.hear('opt (.*)$')
 def get_opt(message, opt):
-    message.reply('%s = %s' % (opt, module.opts.get(opt, "Not Found")))
+    message.reply('%s = %r' % (opt, module.opts.get(opt, "Not Found")))
 
 @module.app.route('/<key>')
 def get_key(key):

@@ -152,7 +152,7 @@ class Module(object):
 
     def _register(self, modules, opts):
         self.jeev = modules.jeev
-        self.opts = EnvFallbackDict(opts, self.name)
+        self.opts = EnvFallbackDict(self.name, opts)
         for callback in self._loaded_callbacks:
             self._call_function(callback, self)
 
