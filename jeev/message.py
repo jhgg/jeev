@@ -70,7 +70,7 @@ class Attachment(object):
 
     @property
     def message_overrides(self):
-        if self._message_overrides:
+        if self._message_overrides is None:
             self._message_overrides = {}
 
         return self._message_overrides

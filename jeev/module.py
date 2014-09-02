@@ -15,6 +15,8 @@ class Modules(object):
     """
         Holds all the loaded modules for a given Jeev instance.
     """
+    _reserved_module_names = {'jeev', 'web', 'adapter'}
+
     def __init__(self, jeev):
         self.jeev = jeev
         self._module_list = []
@@ -35,11 +37,19 @@ class Modules(object):
             sys.modules.pop('module')
             sys.modules.pop(name, None)
 
-    def load_all(self):
+    def load_all(self, modules=None):
         """
             Loads all the modules defined in Jeev's configuration
         """
-        for module_name, opts in getattr(self.jeev.config, 'modules', {}).iteritems():
+        modules = modules if modules is not None else getattr(self.jeev.config, 'modules', {})
+
+        if isinstance(modules, str):
+            modules = modules.split(',')
+
+        if not isinstance(modules, dict):
+            modules = {k: {} for k in modules}
+
+        for module_name, opts in modules.iteritems():
             self.load(module_name, opts)
 
     def load(self, module_name, opts):
@@ -48,6 +58,9 @@ class Modules(object):
         """
         if module_name in self._module_dict:
             raise RuntimeError("Trying to load duplicate module!")
+
+        if module_name in self._reserved_module_names:
+            raise RuntimeError("Cannot load reserved module named %s" % module_name)
 
         try:
             logger.debug("Loading module %s", module_name)

@@ -4,6 +4,7 @@ import re
 import gevent
 import time
 from adapter import get_by_name
+from utils.env import EnvFallbackDict
 from .web import Web
 from .module import Modules
 import shelve
@@ -20,10 +21,11 @@ class Jeev(object):
 
     def __init__(self, config):
         self.config = config
-        self.adapter = get_by_name(config.adapter)(self, config.adapterOpts)
+        self.adapter = get_by_name(config.adapter)(self, EnvFallbackDict('adapter', config.adapter_opts))
         self.modules = Modules(self)
-        self.module_data_path = config.moduleDataPath
-        self.name = getattr(self.config, 'name', 'Jeev')
+        self.module_data_path = config.module_data_path
+        self.opts = EnvFallbackDict('jeev', getattr(self.config, 'jeev_opts', {}))
+        self.name = self.opts.get('name', 'Jeev')
 
     def _handle_message(self, message):
         # Schedule the handling of the message to occur during the next iteration of the event loop.
@@ -75,7 +77,7 @@ class Jeev(object):
         self.modules.load_all()
 
         if getattr(self.config, 'web', False):
-            self._web = Web(self)
+            self._web = Web(self, EnvFallbackDict('web', getattr(self.config, 'web_opts', {})))
             self._web.start()
 
         self.adapter.start()

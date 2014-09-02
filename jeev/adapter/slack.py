@@ -14,7 +14,7 @@ class SlackAdapter(object):
     def __init__(self, jeev, opts):
         self._jeev = jeev
         self._opts = opts
-        self._server = WSGIServer((self._opts['listen_host'], self._opts['listen_port']), self._wsgi_app)
+        self._server = WSGIServer((self._opts['listen_host'], int(self._opts['listen_port'])), self._wsgi_app)
         self._channel_id_cache = {}
         self._requests = requests.Session()
         self._send_url = 'https://%s.slack.com/services/hooks/hubot?token=%s' % (self._opts['team_name'],

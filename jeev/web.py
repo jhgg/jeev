@@ -2,6 +2,7 @@ import logging
 from gevent.pywsgi import WSGIServer
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule
+from utils.env import EnvFallbackDict
 
 logger = logging.getLogger('jeev.web')
 
@@ -16,10 +17,10 @@ class Web(object):
         Rule('/<module>/<path:rest>', endpoint='module')
     ])
 
-    def __init__(self, jeev):
+    def __init__(self, jeev, opts):
         self._jeev = jeev
-        self._opts = getattr(jeev.config, 'webOpts', {})
-        self._server = WSGIServer((self._opts['listen_host'], self._opts['listen_port']), self._wsgi_app)
+        self._opts = opts
+        self._server = WSGIServer((self._opts['listen_host'], int(self._opts['listen_port'])), self._wsgi_app)
 
     def _wsgi_app(self, environ, start_response):
         urls = self._url_map.bind_to_environ(environ)

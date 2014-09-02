@@ -1,5 +1,5 @@
 adapter = 'console'
-adapterOpts = {
+adapter_opts = {
     'consoleChannel': 'test',
     'consoleUser': 'user',
 }
@@ -14,9 +14,9 @@ modules = {
 }
 
 web = True
-webOpts = {
+web_opts = {
     'listenHost': 'localhost',
     'listenPort': 8080
 }
 
-moduleDataPath = './shelve'
+module_data_path = './shelve'
