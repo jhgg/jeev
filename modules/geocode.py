@@ -5,7 +5,7 @@ import module
 
 @module.loaded
 def loaded(module):
-    module.g.geocoder = import_dotted_path(module.opts['using'])()
+    module.g.geocoder = import_dotted_path(module.opts.get('using', 'geopy.geocoders.Nominatim'))()
 
 
 @module.respond('geocode (.*)$')

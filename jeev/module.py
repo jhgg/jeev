@@ -6,6 +6,7 @@ import re
 import gevent
 import sys
 from utils.ctx import G
+from utils.env import EnvFallbackDict
 
 logger = logging.getLogger('jeev.module')
 
@@ -111,17 +112,17 @@ class Module(object):
 
     """
     STOP = object()
-    __slots__ = ['jeev', 'opts', 'name', 'author', 'description',
+    __slots__ = ['jeev', 'opts', '_name', 'author', 'description',
                  '_commands', '_message_listeners', '_regex_listeners', '_loaded_callbacks', '_unload_callbacks',
                  '_running_greenlets', '_data', '_app', '_g']
 
     def __init__(self, name, author=None, description=None):
-        self.name = name
         self.author = author
         self.description = description
         self.jeev = None
         self.opts = None
 
+        self._name = name
         self._g = None
         self._commands = defaultdict(list)
         self._message_listeners = []
@@ -151,7 +152,7 @@ class Module(object):
 
     def _register(self, modules, opts):
         self.jeev = modules.jeev
-        self.opts = opts
+        self.opts = EnvFallbackDict(opts, self.name)
         for callback in self._loaded_callbacks:
             self._call_function(callback, self)
 
@@ -226,6 +227,10 @@ class Module(object):
         if self._g:
             self._g.__dict__.clear()
             self._g = None
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def data(self):

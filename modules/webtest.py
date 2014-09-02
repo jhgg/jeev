@@ -17,6 +17,10 @@ def index():
 # We use `module.data` to store persistent data that will exist
 # between restarts.
 
+@module.hear('opt (.*)$')
+def get_opt(message, opt):
+    message.reply('%s = %s' % (opt, module.opts.get(opt, "Not Found")))
+
 @module.app.route('/<key>')
 def get_key(key):
     if key not in module.data:
