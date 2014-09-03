@@ -23,5 +23,3 @@ storage = 'shelve'
 storage_opts = {
     'shelve_data_path': './shelve'
 }
-
-module_data_path = './shelve'
