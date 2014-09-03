@@ -62,6 +62,9 @@ configuration options that can be set to configure Jeev.
     
 ## Storage Options
 
+* `JEEV_STORAGE_SYNC_INTERVAL`: How often to periodically sync the storage in seconds.
+    * Default: `600`
+
 ### `jeev.storage.shelve`
 
 * `JEEV_STORAGE_SHELVE_DATA_PATH`: Where shelve stores it's database files. 

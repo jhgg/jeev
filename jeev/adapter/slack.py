@@ -53,9 +53,6 @@ class SlackAdapter(object):
     def stop(self):
         self._server.stop()
 
-    def join(self):
-        self._server.serve_forever()
-
     def send_message(self, channel, message):
         if channel not in self._channel_id_cache:
             return

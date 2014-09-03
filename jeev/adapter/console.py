@@ -56,9 +56,6 @@ class ConsoleAdapter(object):
         self._reader.kill()
         self._reader = None
 
-    def join(self):
-        self._reader.join()
-
     def send_message(self, channel, message):
         self._stdout.write('\r< [#%s] %s\n' % (channel, message))
         self._stdout.write('[%s@%s] > ' % (self._user, self._channel))

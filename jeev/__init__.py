@@ -14,7 +14,7 @@ def run(config):
     j = Jeev(config)
 
     try:
-        j.run(auto_join=False)
+        j.run()
         atexit.register(j.stop)
         j.join()
 

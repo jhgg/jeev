@@ -2,7 +2,9 @@ import logging
 import re
 import gevent
 import time
+from gevent.event import Event
 from .adapter import get_adapter_by_name
+from .utils.periodic import Periodic
 from .storage import get_store_by_name
 from .web import Web
 from .module import Modules
@@ -14,7 +16,6 @@ logger = logging.getLogger('jeev.jeev')
 class Jeev(object):
     _name = None
     _web = None
-    _running = False
     _targeting_me = None
     _targeting_me_re = None
 
@@ -31,6 +32,10 @@ class Jeev(object):
         self.adapter = adapter_class(self, opts_for('adapter'))
         self.modules = Modules(self)
         self.name = self._opts.get('name', 'Jeev')
+        self._storage_sync_periodic = Periodic(int(self._opts.get('storage_sync_interval', 600)),
+                                               self.modules._save_loaded_module_data)
+        self._stop_event = Event()
+        self._stop_event.set()
 
     def _handle_message(self, message):
         # Schedule the handling of the message to occur during the next iteration of the event loop.
@@ -62,13 +67,13 @@ class Jeev(object):
 
     @property
     def running(self):
-        return self._running
+        return not self._stop_event.is_set()
 
     @property
     def stopped(self):
-        return not self._running
+        return not self.running
 
-    def run(self, auto_join=True):
+    def run(self, auto_join=False):
         """
             Runs Jeev, loading all the modules, starting the web service, and starting the adapter.
 
@@ -76,7 +81,7 @@ class Jeev(object):
             outside of a greenlet.
 
         """
-        if self._running:
+        if self.running:
             raise RuntimeError("Jeev is already running!")
 
         self._storage.start()
@@ -87,27 +92,28 @@ class Jeev(object):
             self._web.start()
 
         self.adapter.start()
-        self._running = True
+        self._storage_sync_periodic.start(right_away=False)
+        self._stop_event.clear()
 
         # If we are the main greenlet, chances are we probably want to never return,
         # so the main greenlet won't exit, and tear down everything with it.
         if auto_join and gevent.get_hub().parent == gevent.getcurrent():
             self.join()
 
-    def join(self):
+    def join(self, timeout=None):
         """
             Blocks until Jeev is stopped.
         """
-        if not self._running:
+        if self.stopped:
             raise RuntimeError("Jeev is not running!")
 
-        self.adapter.join()
+        self._stop_event.wait(timeout)
 
     def stop(self):
         """
             Stops jeev, turning off the web listener, unloading modules, and stopping the adapter.
         """
-        if not self._running:
+        if self.stopped:
             raise RuntimeError("Jeev is not running!")
 
         try:
@@ -118,10 +124,11 @@ class Jeev(object):
                 self._web = None
 
             self.adapter.stop()
+            self._storage_sync_periodic.stop()
             self._storage.stop()
 
         finally:
-            self._running = False
+            self._stop_event.set()
 
     def send_message(self, channel, message):
         """
