@@ -17,11 +17,14 @@ class SlackAdapter(object):
     def __init__(self, jeev, opts):
         self._jeev = jeev
         self._opts = opts
-        self._server = WSGIServer((self._opts['listen_host'], int(self._opts['listen_port'])), self._wsgi_app)
+        self._server = WSGIServer((self._opts('slack_listen_host', '0.0.0.0'),
+                                   int(self._opts.get('slack_listen_port', 8080))), self._wsgi_app)
+
+        self._link_names = str(self._opts.get('slack_link_names', False)).upper() == 'TRUE'
         self._channel_id_cache = {}
         self._requests = requests.Session()
-        self._send_url = 'https://%s.slack.com/services/hooks/hubot?token=%s' % (self._opts['team_name'],
-                                                                                 self._opts['token'])
+        self._send_url = 'https://%s.slack.com/services/hooks/hubot?token=%s' % (self._opts['slack_team_name'],
+                                                                                 self._opts['slack_token'])
 
     def _wsgi_app(self, environ, start_response):
         if environ['PATH_INFO'] == '/hubot/slack-webhook' and environ['REQUEST_METHOD'] == 'POST':
@@ -59,7 +62,7 @@ class SlackAdapter(object):
         args = {
             'username': self._jeev.name,
             'text': message,
-            'link_names': self._opts.get('linkNames', False),
+            'link_names': self._link_names,
             'channel': self._channel_id_cache[channel]
         }
 
@@ -77,7 +80,7 @@ class SlackAdapter(object):
 
         args = {
             'username': self._jeev.name,
-            'link_names': self._opts.get('link_names', False),
+            'link_names': self._link_names,
             'channel': channel,
             'attachments': [a.serialize() for a in attachments]
         }

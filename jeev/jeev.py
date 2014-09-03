@@ -21,7 +21,7 @@ class Jeev(object):
     def __init__(self, config):
         opts_for = lambda name: EnvFallbackDict(name, getattr(config, '%s_opts' % name, {}))
 
-        self._opts = opts_for('jeev')
+        self._opts = EnvFallbackDict(None, getattr(config, 'jeev_opts', {}))
         storage_class = get_store_by_name(self._opts.get('storage', getattr(config, 'storage', 'shelve')))
         adapter_class = get_adapter_by_name(self._opts.get('adapter', getattr(config, 'adapter', 'console')))
 
@@ -82,7 +82,7 @@ class Jeev(object):
         self._storage.start()
         self.modules.load_all()
 
-        if getattr(self.config, 'web', False):
+        if getattr(self.config, 'web', False) or str(self._opts.get('web', False).upper() == 'TRUE'):
             self._web = Web(self, EnvFallbackDict('web', getattr(self.config, 'web_opts', {})))
             self._web.start()
 

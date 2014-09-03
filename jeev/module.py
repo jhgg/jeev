@@ -43,7 +43,12 @@ class Modules(object):
         """
             Loads all the modules defined in Jeev's configuration
         """
-        modules = modules if modules is not None else getattr(self.jeev.config, 'modules', {})
+        if modules is None:
+            if 'modules' in self.jeev._opts:
+                modules = self.jeev._opts['modules']
+
+            else:
+                modules = getattr(self.jeev.config, 'modules', {})
 
         if isinstance(modules, str):
             modules = modules.split(',')

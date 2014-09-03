@@ -25,6 +25,9 @@ class EnvFallbackDict(object):
             self._data.update(kwargs)
 
     def environ_key(self, key):
+        if not self.module_name:
+            return ('jeev_%s' % key).upper()
+
         return ('jeev_%s_%s' % (self.module_name, key)).upper()
 
     def __contains__(self, item):
