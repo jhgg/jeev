@@ -234,7 +234,7 @@ class Module(object):
                 self._data.sync()
 
     def _load_data(self):
-        return self.jeev.get_module_data(self)
+        return self.jeev._get_module_data(self)
 
     def _clean_g(self):
         if self._g:

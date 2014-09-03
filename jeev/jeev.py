@@ -47,6 +47,9 @@ class Jeev(object):
 
         logger.debug("Took %.5f seconds to handle message %r", end - start, message)
 
+    def _get_module_data(self, module):
+        return self._storage.get_data_for_module_name(module.name)
+
     @property
     def name(self):
         return self._name
@@ -136,6 +139,3 @@ class Jeev(object):
 
     def on_module_error(self, module, e):
         print module, e
-
-    def get_module_data(self, module):
-        return self._storage.get_data_for_module_name(module.name)
