@@ -9,7 +9,6 @@ A persistent data store, that stores data using `SLACK_STORAGE`.
 
 #### Example
 ```python
-
 # Usually accessed like a `dict`. 
 # Keys are persisted to the data store when they are written to:
 module.data['foo'] = 'bar'
@@ -28,7 +27,6 @@ module.data['my_list'].append(4)    # Does not save to the database, as my_list 
 print module.data['my_list']        # [1, 2, 3, 4]
 module.data.sync()                  # Persists 'my_list' to the data store (note that this function is smart, and won't
                                     # try to re-write everything in modules.data)
-
 ```
 
 ### `module.g`
@@ -56,7 +54,6 @@ called. Usually, this is used as a decorator.
 @module.loaded
 def connect_to_some_database():
     module.g.db = MyDatabaseResource()
-
 ```
 
 ### `@module.unloaded`
@@ -69,7 +66,6 @@ called.
 @module.unloaded
 def disconnect_from_database():
     module.g.db.close() # You don't have to unset this variable, module.g is cleared when the module is unloaded.
-
 ```
 
 ## Message Handler Decorators
@@ -84,24 +80,139 @@ Called whenever Jeev sees a message.
 def on_message(message):
     print "Got message from", message.user, ":", message.message
     message.reply_to_user('You said: %s" % message.message)
-
 ```
 
 ### `@module.command(command, priority=0)`
+A handler that gets called if `command` is seen as the first word in a message. This runs faster than `match`, `hear`,
+and `respond`, as it uses a dict lookup that is pretty much constant time. 
+
+#### Example
+```python
+# This will get called whenever anyone says '!ping' in the channel.
+@module.command('!ping')
+def ping(message):
+    module.reply('Pong!')
+```
+
 ### `@module.match(regex, flags=0, priority=0)`
+Registers a function that will be called when a message is seen that matches a specific regex.
+
+#### Example
+```python
+
+# Case sensitive match for 'throw me the facts'
+# Will get called when a message contains 'throw me the facts' in all lower case.
+@module.match('throw me the facts')
+def the_facts(message):
+    message.reply('just the basics?')
+    
+# Captures are passed to the handler function as arguments.
+
+@module.match('what is (.*)')
+def what_is(message, thing):
+    if thing == 'love':
+        message.reply('BABY DONT HURT ME!')
+    else:
+        message.reply('I'm not really sure what %s is' % thing)
+        
+        
+# In addition, named captures work as well.
+@module.match('search for (?P<thing>.*) on (?P<engine>google|ddg)')
+def what_is(message, engine, thing):
+    message.reply('searching for %s on %s' % (thing, engine))    
+    
+# Or even...
+@module.match('search for (?P<thing>.*) on (?P<engine>google|ddg)')
+def what_is(message, **kwargs):
+    message.reply('searching for %(thing)s on %(engine)s' % kwargs)
+    
+```
+
 ### `@module.hear(regex, priority=0)`
+Same as `@module.match(...)` but defaults to a case-insensitive match.
+
+
 ### `@module.respond(regex, flags=re.I, priority=0)`
+Same as `@module.hear(...)` but only gets called if the message is addressing the bot (meaning the message starts with 
+the bot name "jeev, throw me the facts!")
 
 ## Function Decorators
 ## `@module.async(sync_return_val=None, timeout=0)`
+Makes it so that the function is called inside a greenlet. This is useful for functions which make web requests. 
+Although, a function that makes a request will never block Jeev, it will prevent the other message handlers from being 
+called for a specific message. However, since each incoming message is processed in it's own greenlet, a message handler
+that performs code that can be made concurrent with gevent will never delay delay the processing of new messages. Where
+this function really is useful is to set a timeout to the processing time of a handler.
+
+#### Example
+
+**Making a web request timeout**
+```python
+
+@module.hear('cat ?fact')
+@module.async(timeout=5)
+def cat_fact(message):
+    # If this request takes more than 5 seconds, the greenlet that is running this function will be killed.
+    response = requests.get('http://catfacts-api.appspot.com/api/facts?number=1')
+    if response.status_code == requests.codes.ok:
+        json = response.json()
+        if json['success'] == "true":
+            message.reply_to_user(json['facts'][0])
+```
+
+**You can also handle the timeout event**
+```python
+
+from gevent import Timeout, sleep
+
+@module.hear('sleep for (\d+) seconds')
+@module.async(timeout=5)
+def sleep_for(message, seconds):
+    try:
+        message.reply("Okay, I'm going to try to sleep for %s seconds" % seconds)
+        sleep(int(seconds))
+        
+    except Timeout:
+        message.reply("OOPS! I slept for too long! Oh well :C")
+```
 
 ## Greenlet Functions
-## `module.spawn(f, *args, **kwargs)`
-## `moudle.spawn_after(delay, f, *args, **kwargs)`
+### `module.spawn(f, *args, **kwargs)`
+Spawns a greenlet to run a function. The greenlet will be killed if it doesn't finish before the module unloads. 
+
+#### Example
+```python
+
+from gevent import sleep
+
+def background_task(what):
+    print "I'm doing %s in the background... not sure what" % what
+    sleep(50)
+    print "okay... it finished!"
+
+@module.hear('do (.*?) in the background')
+def do_background_task(message, what):
+    module.spawn(background_task, what)
+    message.reply("okay! started background task to do %s!" % what)
+```
+
+
+### `moudle.spawn_after(delay, f, *args, **kwargs)`
+Schedules a greenlet that will run `f` after `delay` seconds. The greenlet will be killed/unscheduled if it doesn't
+start/finish before the module unloads.
+
+#### Example
+```python
+import random
+
+@module.hear('reply to me slowly')
+def reply_slowly(message):
+    module.spawn_after(random.randint(5, 10), message.reply, "is this slow enough?")
+
+```
 
 ## Web
 
-### `module.is_web`
 ### `module.app`
 #### getter:
 
@@ -109,7 +220,8 @@ def on_message(message):
 
 #### setter:
     
-## `module.set_wsgi_handler(handler)`
+### `module.is_web`
+### `module.set_wsgi_handler(handler)`
 
 ## Chat Functions
 
