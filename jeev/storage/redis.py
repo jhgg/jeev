@@ -80,12 +80,6 @@ storage = RedisStorage
 
 
 class RedisDict(UserDict.DictMixin):
-    """Base class for shelf implementations.
-
-    This is initialized with a dictionary-like object.
-    See the module's __doc__ string for an overview of the interface.
-    """
-
     def __init__(self, storage, hash_key):
         self._storage = storage
         self._hash_key = hash_key
