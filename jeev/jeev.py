@@ -76,6 +76,7 @@ class Jeev(object):
         if self._running:
             raise RuntimeError("Jeev is already running!")
 
+        self._storage.start()
         self.modules.load_all()
 
         if getattr(self.config, 'web', False):
@@ -83,7 +84,6 @@ class Jeev(object):
             self._web.start()
 
         self.adapter.start()
-        self._storage.start()
         self._running = True
 
         # If we are the main greenlet, chances are we probably want to never return,
