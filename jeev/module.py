@@ -285,6 +285,7 @@ class Module(object):
         """
 
         self._unload_callbacks.append(f)
+        return f
 
     def command(self, command, priority=0):
         """
@@ -293,6 +294,7 @@ class Module(object):
 
         def bind_command(f):
             bisect.insort(self._commands[command], (priority, f))
+            return f
 
         return bind_command
 
@@ -304,6 +306,7 @@ class Module(object):
 
         def bind_matcher(f):
             bisect.insort(self._regex_listeners, (priority, regex, False, f))
+            return f
 
         return bind_matcher
 
@@ -321,6 +324,7 @@ class Module(object):
 
         def bind_matcher(f):
             bisect.insort(self._regex_listeners, (priority, regex, True, f))
+            return f
 
         return bind_matcher
 
@@ -331,6 +335,7 @@ class Module(object):
 
         def bind_listener(f):
             bisect.insort(self._message_listeners, (priority, f))
+            return f
 
         return bind_listener
 
