@@ -4,6 +4,13 @@ Documentation for the public module API with examples.
 ### `module.name`
 Gets the module's name.
 
+### `module.jeev`
+The `Jeev` instance that loaded this module.
+
+### `module.opts`
+A read only dictionary of options passed to the module (either via the config file, or ENVIRONMENT variables). All
+values of this dictionary are strings.
+
 ### `module.data`
 A persistent data store, that stores data using `SLACK_STORAGE`.
 
@@ -212,17 +219,75 @@ def reply_slowly(message):
 ```
 
 ## Web
+If `JEEV_WEB` is set to `TRUE`, Jeev runs a WSGI server that dispatches requests to loaded modules by their name. 
+
+Basically when Jeev gets a request at "/foo/bar", it will look and see if the `foo` is loaded, and that it has a wsgi
+app bound (via `module.is_web`) and then call the module's WSGI handler (`module.app`) with an environment that has
+`SCRIPT_NAME` and `PATH_INFO` modified and set to `/foo`, and `/bar` respectively.  
 
 ### `module.app`
-#### getter:
+By default, module.app when accessed for the first time will initialize an empty Flask application to handle requests.
+This makes it super easy to write web hooks and functions.
 
-##### Example
+#### Example
+```python
 
-#### setter:
-    
+# Assume the module name is `webtest`
+from flask import Response, request
+
+# Will get called when '/webtest' is requested.
+@module.app.route('/')
+def index():
+    return Response("Hello, I am {}".format(module.jeev.name))
+
+# Will get called when '/webtest/webhook' gets a POST request that will send a message to a channel specified
+# in the POST body.
+# $ curl -d "channel=jeev&message=hey+there+from+the+web" http://localhost:8080/webtest/webhook
+# OK
+@module.app.route('/webhook', methods=['POST'])
+def handle_webhook():
+    module.send_message(request.form['channel'], request.form['message'])
+    return Response('OK')
+```
+
+*You can also set `module.app` to your own custom WSGI handler if you don't want to use Flask.*
+```python
+from some.package.web import app
+
+module.app = app
+```
+
 ### `module.is_web`
+Returns True if the module has a WSGI handler bound.
+
 ### `module.set_wsgi_handler(handler)`
+This is essentially the same as setting `module.app` but it can be used as a decorator.
+
+#### Example
+```python
+
+@module.set_wsgi_handler
+def wsgi_handler(environ, start_response):
+    start_response('200 OK', [])
+    return ['Hello World\n']
+```
 
 ## Chat Functions
 
 ### `module.send_message(channel, message)`
+Sends `message` to `channel`. This usually isn't called. Instead, use `message.reply(message)` to send a message
+to the channel the message was received in. 
+
+#### Example
+
+```python
+@module.hear('lol')
+def handle(message):
+    # These do the same thing:
+    message.reply('what are you laughing about?')
+    module.send_message(message.channel, 'what are you laughing about?')
+     
+    # These too, for addressing the user.
+    message.reply_to_user('what?')
+    module.send_message(message.channel, '%s: what?' % message.user)
+```
