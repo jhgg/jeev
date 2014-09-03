@@ -27,7 +27,9 @@ class Modules(object):
             module._handle_message(message)
 
     def _import_module(self, name, module_instance):
-        name = 'modules.%s' % name
+        if '.' not in name:
+            name = 'modules.%s' % name
+
         try:
             sys.modules['module'] = module_instance
             __import__(name)
