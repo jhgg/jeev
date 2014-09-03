@@ -52,3 +52,15 @@ def do_setter(message, key):
 
     else:
         message.reply_to_user("I'm not sure what %s is anyways!" % key)
+
+
+from gevent import Timeout, sleep
+
+@module.hear('sleep for (\d+) seconds')
+@module.async(timeout=5)
+def sleep_for(message, seconds):
+    try:
+        message.reply("Okay, I'm going to try to sleep for %s seconds" % seconds)
+        sleep(int(seconds))
+    except Timeout:
+        message.reply("OOPS! I slept for too long! Oh well :C")

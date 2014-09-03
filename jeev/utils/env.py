@@ -15,7 +15,11 @@ class EnvFallbackDict(object):
     __slots__ = ['module_name', '_data']
 
     def __init__(self, module_name, dict, **kwargs):
-        self.module_name = module_name.replace('.', '_')
+        self.module_name = module_name
+
+        if self.module_name:
+            self.module_name = self.module_name.replace('.', '_')
+
         self._data = {}
 
         if dict is not None:
