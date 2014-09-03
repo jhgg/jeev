@@ -1,4 +1,5 @@
 import UserDict
+from gevent.lock import Semaphore
 from ..utils.importing import import_dotted_path
 try:
     from cStringIO import StringIO
@@ -90,6 +91,7 @@ class RedisDict(UserDict.DictMixin):
         self._hash_key = hash_key
         self._protocol = 0
         self._cache = {}
+        self._cache_write_lock = Semaphore()
 
     def keys(self):
         return self._storage.redis.hkeys(self._hash_key)
@@ -128,7 +130,8 @@ class RedisDict(UserDict.DictMixin):
         return value
 
     def __setitem__(self, key, value):
-        self._cache[key] = value
+        with self._cache_write_lock:
+            self._cache[key] = value
 
         f = StringIO()
         p = Pickler(f, self._protocol)
@@ -139,10 +142,8 @@ class RedisDict(UserDict.DictMixin):
     def __delitem__(self, key):
         self._storage.redis.hdel(self._hash_key, key)
 
-        try:
-            del self._cache[key]
-        except KeyError:
-            pass
+        with self._cache_write_lock:
+            self._cache.pop(key, None)
 
     def close(self):
         self.sync()
@@ -152,14 +153,15 @@ class RedisDict(UserDict.DictMixin):
         self.close()
 
     def sync(self):
-        if self._cache:
-            with self._storage.redis.pipeline() as pipeline:
-                for key, entry in self._cache.iteritems():
-                    f = StringIO()
-                    p = Pickler(f, self._protocol)
-                    p.dump(entry)
-                    pipeline.hset(self._hash_key, key, f.getvalue())
+        if not self._cache:
+            return
 
-                pipeline.execute()
+        with self._cache_write_lock, self._storage.redis.pipeline() as pipeline:
+            for key, entry in self._cache.iteritems():
+                f = StringIO()
+                p = Pickler(f, self._protocol)
+                p.dump(entry)
+                pipeline.hset(self._hash_key, key, f.getvalue())
 
+            pipeline.execute()
             self._cache.clear()

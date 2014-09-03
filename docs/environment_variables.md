@@ -29,7 +29,7 @@ configuration options that can be set to configure Jeev.
     
 * `JEEV_WEB_LISTEN_PORT`: The port taht the built in web-server will bind to.
     * **REQUIRED** if `JEEV_WEB == TRUE`
-    * Example: `8000` (note that if you are using the Slack adapter, it will default bind to port 8080).
+    * Example: `8000` (note that if you are using the Slack adapter, by default port 8080 will already be in use)
 
 
 ## Adapter Options

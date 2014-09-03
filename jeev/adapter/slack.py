@@ -2,7 +2,7 @@ import json
 import urlparse
 import requests
 from gevent.wsgi import WSGIServer
-from gevent import spawn
+from gevent import spawn_raw
 from ..message import Message
 
 
@@ -67,7 +67,7 @@ class SlackAdapter(object):
             'channel': self._channel_id_cache[channel]
         }
 
-        spawn(self._requests.post, self._send_url, json.dumps(args))
+        spawn_raw(self._requests.post, self._send_url, json.dumps(args))
 
     def send_messages(self, channel, *messages):
         for message in messages:
@@ -93,7 +93,7 @@ class SlackAdapter(object):
             for k, v in a.message_overrides.items():
                 args[k] = v
 
-        spawn(self._requests.post, self._send_url, json.dumps(args))
+        spawn_raw(self._requests.post, self._send_url, json.dumps(args))
 
 
 adapter = SlackAdapter

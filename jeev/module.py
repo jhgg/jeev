@@ -26,6 +26,10 @@ class Modules(object):
         for module in self._module_list:
             module._handle_message(message)
 
+    def _save_loaded_module_data(self):
+        for module in self._module_list:
+            module._save_data()
+
     def _import_module(self, name, module_instance):
         if '.' not in name:
             name = 'modules.%s' % name

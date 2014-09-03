@@ -26,14 +26,25 @@ del module.data['foo']
 print 'foo' in module.data          # False
 
 # However, when setting mutable objects (aka, dicts or lists as a value) special care has to be taken to make sure
-# that they are properly persisted to the data store.
+# that they are properly persisted to storage right away.
 
 module.data['my_list'] = [1, 2, 3]  # Saved to the database, since you are writing to a value.
 module.data['my_list'].append(4)    # Does not save to the database, as my_list is accessed but not set.
 
-print module.data['my_list']        # [1, 2, 3, 4]
+print module.data['my_list']        # [1, 2, 3, 4] Prints out the cached local copy, but the storage still has [1, 2, 3]
+
+# Most of the time, you don't have to worry about it though. When Jeev is stopped, and at a regular interval, the
+# data for each module are eventually persisted, and out of sync objects ('my_list' in this example) will be
+# properly saved to the storage. However, if you have important data that you want to make sure is saved right away,
+# you have two options:
+
+# 1) You can force a manual sync, which will persist all potentially out of sync items to the storage.
 module.data.sync()                  # Persists 'my_list' to the data store (note that this function is smart, and won't
                                     # try to re-write everything in modules.data)
+
+# 2) You can write the key to itself, which will only persist the key (my_list) to the storage.
+module.data['my_list'] = module.data['my_list'] # Since stuff is stored when its value is  set, the storage will persist
+                                                # the value.
 ```
 
 ### `module.g`

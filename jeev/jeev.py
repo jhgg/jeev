@@ -34,7 +34,7 @@ class Jeev(object):
 
     def _handle_message(self, message):
         # Schedule the handling of the message to occur during the next iteration of the event loop.
-        gevent.spawn(self.__handle_message, message)
+        gevent.spawn_raw(self.__handle_message, message)
 
     def __handle_message(self, message):
         logger.debug("Incoming message %r", message)
