@@ -5,6 +5,7 @@ import logging
 import re
 import gevent
 import sys
+from .utils.periodic import ModulePeriodic
 from .utils.g import G
 from .utils.env import EnvFallbackDict
 
@@ -27,6 +28,7 @@ class Modules(object):
             module._handle_message(message)
 
     def _save_loaded_module_data(self):
+        print 'dicks'
         for module in self._module_list:
             module._save_data()
 
@@ -159,7 +161,7 @@ class Module(object):
 
     def _unload(self):
         for callback in self._unload_callbacks:
-            self._call_function(callback, self)
+            self._call_function(callback)
 
         self._regex_listeners[:] = []
         self._loaded_callbacks[:] = []
@@ -178,7 +180,7 @@ class Module(object):
         self.jeev = modules.jeev
         self.opts = EnvFallbackDict(self.name, opts)
         for callback in self._loaded_callbacks:
-            self._call_function(callback, self)
+            self._call_function(callback)
 
     def _call_function(self, f, *args, **kwargs):
         try:
@@ -391,6 +393,14 @@ class Module(object):
         self._running_greenlets.add(g)
         g.start_later(delay)
         return g
+
+    def periodic(self, interval, f, *args, **kwargs):
+        """
+            Creates a Periodic that can be used to schedule the calling of the provided function
+            at a regular interval. The periodic will be automatically unscheduled when the module
+            is unloaded.
+        """
+        return ModulePeriodic(self, interval, f, *args, **kwargs)
 
     @property
     def is_web(self):

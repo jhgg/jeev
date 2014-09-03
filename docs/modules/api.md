@@ -229,6 +229,9 @@ def reply_slowly(message):
 
 ```
 
+### `module.periodic(interval, f, *args, **kwargs`
+TODO: Document this
+
 ## Web
 If `JEEV_WEB` is set to `TRUE`, Jeev runs a WSGI server that dispatches requests to loaded modules by their name. 
 
