@@ -1,5 +1,5 @@
 from jeev.message import Attachment
-from utils.importing import import_dotted_path
+from jeev.utils.importing import import_dotted_path
 import module
 
 

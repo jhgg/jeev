@@ -1,4 +1,4 @@
-from utils.importing import import_dotted_path
+from ..utils.importing import import_dotted_path
 import os
 
 # The solution to importing python's stdlib shelve from inside of a module named shelve :|

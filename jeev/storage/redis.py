@@ -1,5 +1,5 @@
 import UserDict
-from utils.importing import import_dotted_path
+from ..utils.importing import import_dotted_path
 try:
     from cStringIO import StringIO
 
@@ -14,7 +14,7 @@ except ImportError:
 
 try:
     StrictRedis = import_dotted_path('redis.StrictRedis')
-    
+
 except ImportError:
     raise ImportError("redis-py is not installed. Install it using `pip install redis` "
                       "(see https://github.com/andymccurdy/redis-py for more details)")

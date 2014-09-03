@@ -1,4 +1,4 @@
-from utils import importing
+from ..utils import importing
 
 
 def get_adapter_by_name(name):

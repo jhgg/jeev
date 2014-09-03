@@ -3,7 +3,7 @@ from urllib import urlencode
 import pytz
 import requests
 import module
-from utils.date import dateDiff
+from jeev.utils.date import dateDiff
 from werkzeug.utils import escape
 
 eastern = pytz.timezone("US/Eastern")

@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 import gevent
 import time
@@ -7,7 +6,7 @@ from .adapter import get_adapter_by_name
 from .storage import get_store_by_name
 from .web import Web
 from .module import Modules
-from utils.env import EnvFallbackDict
+from .utils.env import EnvFallbackDict
 
 logger = logging.getLogger('jeev.jeev')
 

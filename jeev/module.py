@@ -5,8 +5,8 @@ import logging
 import re
 import gevent
 import sys
-from utils.ctx import G
-from utils.env import EnvFallbackDict
+from .utils.g import G
+from .utils.env import EnvFallbackDict
 
 logger = logging.getLogger('jeev.module')
 
