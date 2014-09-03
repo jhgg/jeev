@@ -89,7 +89,7 @@ class RedisDict(UserDict.DictMixin):
         self._storage = storage
         self._hash_key = hash_key
         self._protocol = 0
-        self.cache = {}
+        self._cache = {}
 
     def keys(self):
         return self._storage.redis.hkeys(self._hash_key)
@@ -101,6 +101,9 @@ class RedisDict(UserDict.DictMixin):
         return key in self
 
     def __contains__(self, key):
+        if key in self._cache:
+            return True
+
         return self._storage.redis.hexists(self._hash_key, key)
 
     def get(self, key, default=None):
@@ -111,7 +114,7 @@ class RedisDict(UserDict.DictMixin):
 
     def __getitem__(self, key):
         try:
-            value = self.cache[key]
+            value = self._cache[key]
 
         except KeyError:
 
@@ -120,12 +123,12 @@ class RedisDict(UserDict.DictMixin):
 
             f = StringIO(self._storage.redis.hget(self._hash_key, key))
             value = Unpickler(f).load()
-            self.cache[key] = value
+            self._cache[key] = value
 
         return value
 
     def __setitem__(self, key, value):
-        self.cache[key] = value
+        self._cache[key] = value
 
         f = StringIO()
         p = Pickler(f, self._protocol)
@@ -137,7 +140,7 @@ class RedisDict(UserDict.DictMixin):
         self._storage.redis.hdel(self._hash_key, key)
 
         try:
-            del self.cache[key]
+            del self._cache[key]
         except KeyError:
             pass
 
@@ -149,9 +152,9 @@ class RedisDict(UserDict.DictMixin):
         self.close()
 
     def sync(self):
-        if self.cache:
+        if self._cache:
             with self._storage.redis.pipeline() as pipeline:
-                for key, entry in self.cache.iteritems():
+                for key, entry in self._cache.iteritems():
                     f = StringIO()
                     p = Pickler(f, self._protocol)
                     p.dump(entry)
@@ -159,4 +162,4 @@ class RedisDict(UserDict.DictMixin):
 
                 pipeline.execute()
 
-            self.cache.clear()
+            self._cache.clear()
