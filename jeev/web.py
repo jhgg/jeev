@@ -2,7 +2,6 @@ import logging
 from gevent.pywsgi import WSGIServer
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule
-from utils.env import EnvFallbackDict
 
 logger = logging.getLogger('jeev.web')
 

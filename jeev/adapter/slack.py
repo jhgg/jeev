@@ -10,6 +10,9 @@ class SlackAdapter(object):
         This adapter exposes a webhook that listens for slack messages.
 
         The web listener for this is independent of Jeev's WSGI server. They cannot run on the same port.
+
+        This adapter works the same as Slack's Hubot adapter. So, when integrating with Jeev, from Slack's integration,
+        use Hubot, and point it to the the adapter's listen host and port.
     """
     def __init__(self, jeev, opts):
         self._jeev = jeev

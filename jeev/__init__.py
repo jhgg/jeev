@@ -1,3 +1,4 @@
+import atexit
 from gevent.monkey import patch_all
 patch_all()
 
@@ -14,7 +15,9 @@ def run(config):
 
     try:
         j.run(auto_join=False)
+        atexit.register(j.stop)
         j.join()
 
     except KeyboardInterrupt:
-        j.stop()
+        print "Got ^C. Stopping!"
+        pass

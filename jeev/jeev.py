@@ -3,11 +3,11 @@ import os
 import re
 import gevent
 import time
-from adapter import get_by_name
-from utils.env import EnvFallbackDict
+from .adapter import get_adapter_by_name
+from .storage import get_store_by_name
 from .web import Web
 from .module import Modules
-import shelve
+from utils.env import EnvFallbackDict
 
 logger = logging.getLogger('jeev.jeev')
 
@@ -20,12 +20,18 @@ class Jeev(object):
     _targeting_me_re = None
 
     def __init__(self, config):
+        opts_for = lambda name: EnvFallbackDict(name, getattr(config, '%s_opts' % name, {}))
+
+        self._opts = opts_for('jeev')
+        storage_class = get_store_by_name(self._opts.get('storage', getattr(config, 'storage', 'shelve')))
+        adapter_class = get_adapter_by_name(self._opts.get('adapter', getattr(config, 'adapter', 'console')))
+
         self.config = config
-        self.adapter = get_by_name(config.adapter)(self, EnvFallbackDict('adapter', config.adapter_opts))
+
+        self._storage = storage_class(self, opts_for('storage'))
+        self.adapter = adapter_class(self, opts_for('adapter'))
         self.modules = Modules(self)
-        self.module_data_path = config.module_data_path
-        self.opts = EnvFallbackDict('jeev', getattr(self.config, 'jeev_opts', {}))
-        self.name = self.opts.get('name', 'Jeev')
+        self.name = self._opts.get('name', 'Jeev')
 
     def _handle_message(self, message):
         # Schedule the handling of the message to occur during the next iteration of the event loop.
@@ -71,9 +77,6 @@ class Jeev(object):
         if self._running:
             raise RuntimeError("Jeev is already running!")
 
-        if not os.path.exists(self.module_data_path):
-            os.makedirs(self.module_data_path)
-
         self.modules.load_all()
 
         if getattr(self.config, 'web', False):
@@ -81,6 +84,7 @@ class Jeev(object):
             self._web.start()
 
         self.adapter.start()
+        self._storage.start()
         self._running = True
 
         # If we are the main greenlet, chances are we probably want to never return,
@@ -112,6 +116,7 @@ class Jeev(object):
                 self._web = None
 
             self.adapter.stop()
+            self._storage.stop()
 
         finally:
             self._running = False
@@ -134,4 +139,4 @@ class Jeev(object):
         print module, e
 
     def get_module_data(self, module):
-        return shelve.open(os.path.join(self.module_data_path, module.name) + '.db', writeback=True)
+        return self._storage.get_data_for_module_name(module.name)

@@ -1,7 +1,7 @@
 adapter = 'console'
 adapter_opts = {
-    'consoleChannel': 'test',
-    'consoleUser': 'user',
+    'console_channel': 'test',
+    'console_user': 'user',
 }
 
 modules = {
@@ -15,8 +15,13 @@ modules = {
 
 web = True
 web_opts = {
-    'listenHost': 'localhost',
-    'listenPort': 8080
+    'listen_host': 'localhost',
+    'listen_port': 8080
+}
+
+storage = 'shelve'
+storage_opts = {
+    'shelve_data_path': './shelve'
 }
 
 module_data_path = './shelve'
