@@ -22,6 +22,7 @@ class ConsoleAdapter(object):
         self._stdout.write(">>> Jeev Console Adapater\n")
         self._stdout.write(">>> Switch channel using \c channel_name\n")
         self._stdout.write(">>> Switch user using \u user_name\n")
+        self._stdout.write(">>> Jeev will respond to the user name %s\n" % self._jeev.name)
         self._stdout.flush()
         
         while True:

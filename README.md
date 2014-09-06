@@ -7,11 +7,42 @@ Jeev is a python alternative to Github's famous Hubot, using Python+Gevent inste
 I got tired of Hubot's callback spaghetti, and decided to write an alternative to work with my company's slack channel.
 This project is a work in progress, and is roughly documented. 
 
-# Getting Started
+# Installing Jeev
 
-Just set up a python virtual environment, run `pip install -r requirements.txt`, `cp config.sample.py config.py`
-and then run `python main.py` and you're up and running. The default adapter will listen for messages in STDIN, and 
-print the bot's replies to STDOUT.
+You will need Python 2.7, and setuptools. If you want, you can install Jeev in a virtual environment.
+
+Install jeev with pip:
+
+    $ pip install jeev
+
+This will install jeev, and his dependencies. It will also give you the `jeev` command which can be used to create
+an initial jeev configuration, and run the bot. Let's create an instance of jeev in the folder "myjeev":
+
+    $ jeev init myjeev
+
+If you want to use jeev with heroku, or just have your Jeev instance inside of a git repository, the newly created
+directory has everything you need: the configuration file, a few sample modules, a .gitignore file (so that you can safely add
+everything to git).
+
+    $ cd myjeev
+    $ git init
+    $ git add .
+    $ git commit -m "Jeev's initial commit."
+
+Now you can run Jeev by simply calling:
+
+    $ jeev run
+
+This will start Jeev using the console adapter that will read messages from stdin, and print out Jeev's responses
+to stdout.
+
+    $ jeev run
+    >>> Jeev Console Adapater
+    >>> Switch channel using \c channel_name
+    >>> Switch user using \u user_name
+    >>> Jeev will respond to the user name Jeev
+    [user@test] >
+
 
 # License
 

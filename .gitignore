@@ -2,3 +2,6 @@ config.py
 shelve
 .idea
 *.pyc
+build
+dist
+*.egg-info

@@ -1,0 +1,47 @@
+#! python
+import argparse
+from importlib import import_module
+import sys
+
+parser = argparse.ArgumentParser(prog='jeev', description='Jeev')
+
+subparsers = parser.add_subparsers(dest='command')
+init_parser = subparsers.add_parser('init', help="Initializes an instance of jeev")
+init_parser.add_argument('directory')
+run_parser = subparsers.add_parser('run', help="Initializes an instance of jeev")
+run_parser.add_argument('--config', default='config.py')
+
+
+class Error(Exception):
+    pass
+
+
+def init(ns):
+    try:
+        import_module(ns.directory)
+    except ImportError:
+        pass
+    else:
+        raise Error("%r conflicts with the name of an existing "
+                    "Python module and cannot be used as the name "
+                    "of the jeev directory." % ns.directory)
+
+    print "init called", ns
+
+
+def run(ns):
+    import jeev
+    import imp
+    try:
+        config = imp.load_source('config', ns.config)
+    except IOError:
+        config = object()
+
+    jeev.run(config)
+
+try:
+    ns = parser.parse_args(sys.argv[1:])
+    globals()[ns.command](ns)
+
+except Error, e:
+    sys.stderr.write("ERROR: %s\n" % e.message)
