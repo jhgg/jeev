@@ -1,4 +1,5 @@
 import os
+import jeev
 from setuptools import setup, find_packages
 
 def read(fname):
@@ -7,7 +8,7 @@ def read(fname):
 
 setup(
     name = "Jeev",
-    version = "0.1.0",
+    version = jeev.version.split('-')[0],
     author = "Jacob Heinz",
     author_email = "me@jh.gg",
     description = "A simple chat bot, at your service.",
