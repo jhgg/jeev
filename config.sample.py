@@ -4,14 +4,14 @@ adapter_opts = {
     'console_user': 'user',
 }
 
-modules = {
-    'ping': {},
-    'kittens': {},
-    'dealwithit': {},
-    'coin': {},
-    'decide': {},
-    'sudo': {}
-}
+modules = [
+    'ping',
+    'kittens',
+    'dealwithit',
+    'coin',
+    'decide',
+    'sudo'
+]
 
 web = True
 web_opts = {
