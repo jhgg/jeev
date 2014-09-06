@@ -28,7 +28,7 @@ class Modules(object):
             module._handle_message(message)
 
     def _save_loaded_module_data(self):
-        print 'dicks'
+        logger.info('Saving loaded module data')
         for module in self._module_list:
             module._save_data()
 
@@ -92,7 +92,7 @@ class Modules(object):
             self._module_list.append(module_instance)
             self._module_dict[module_name] = module_instance
 
-            logger.info("Lodaed module %s", module_name)
+            logger.info("Loaded module %s", module_name)
 
         except Exception, e:
             logger.exception("Could not load module %s", module_name)
@@ -102,6 +102,7 @@ class Modules(object):
         """
             Unload a module by name.
         """
+        logger.debug("Unloading module %s", module_name)
         module = self._module_dict[module_name]
         module._unload()
         del self._module_dict[module_name]
@@ -184,7 +185,7 @@ class Module(object):
 
     def _call_function(self, f, *args, **kwargs):
         try:
-            logger.debug("calling %r with %r %r)", f, args, kwargs)
+            logger.debug("module %s calling %r with %r %r)", self._name, f, args, kwargs)
             return f(*args, **kwargs)
         except Exception, e:
             self._on_error(e)
@@ -239,11 +240,13 @@ class Module(object):
         return flask.Flask('modules.%s' % self.name)
 
     def _save_data(self, close=False):
-        if self._data:
+        if self._data is not None:
             if close:
+                logger.debug("Closing module data for module %s", self._name)
                 self._data.close()
                 self._data = None
             else:
+                logger.debug("Syncing module data for module %s", self._name)
                 self._data.sync()
 
     def _load_data(self):

@@ -19,7 +19,8 @@ class Web(object):
     def __init__(self, jeev, opts):
         self._jeev = jeev
         self._opts = opts
-        self._server = WSGIServer((self._opts['listen_host'], int(self._opts['listen_port'])), self._wsgi_app)
+        self._bind_addr = self._opts['listen_host'], int(self._opts['listen_port'])
+        self._server = WSGIServer(self._bind_addr, self._wsgi_app)
 
     def _wsgi_app(self, environ, start_response):
         urls = self._url_map.bind_to_environ(environ)
@@ -43,7 +44,9 @@ class Web(object):
         return NotFound()(environ, start_response)
 
     def start(self):
+        logger.info("Starting web server on %s:%s", *self._bind_addr)
         self._server.start()
 
     def stop(self):
+        logger.info("Stopping web server on %s:%s", *self._bind_addr)
         self._server.stop()

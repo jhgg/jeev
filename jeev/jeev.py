@@ -9,6 +9,7 @@ from .storage import get_store_by_name
 from .web import Web
 from .module import Modules
 from .utils.env import EnvFallbackDict
+from . import version
 
 logger = logging.getLogger('jeev.jeev')
 
@@ -53,6 +54,7 @@ class Jeev(object):
         logger.debug("Took %.5f seconds to handle message %r", end - start, message)
 
     def _get_module_data(self, module):
+        logger.debug("Getting module data for module %s", module.name)
         return self._storage.get_data_for_module_name(module.name)
 
     @property
@@ -73,6 +75,10 @@ class Jeev(object):
     def stopped(self):
         return not self.running
 
+    @property
+    def version(self):
+        return version
+
     def run(self, auto_join=False):
         """
             Runs Jeev, loading all the modules, starting the web service, and starting the adapter.
@@ -84,13 +90,19 @@ class Jeev(object):
         if self.running:
             raise RuntimeError("Jeev is already running!")
 
+        logger.info("Starting Jeev v%s", self.version)
+
+        logger.info("Starting storage %s", self._storage)
         self._storage.start()
+
+        logger.info("Loading modules")
         self.modules.load_all()
 
         if getattr(self.config, 'web', False) or str(self._opts.get('web', False).upper() == 'TRUE'):
             self._web = Web(self, EnvFallbackDict('web', getattr(self.config, 'web_opts', {})))
             self._web.start()
 
+        logger.info("Starting adapter %s", self.adapter)
         self.adapter.start()
         self._storage_sync_periodic.start(right_away=False)
         self._stop_event.clear()
@@ -116,6 +128,7 @@ class Jeev(object):
         if self.stopped:
             raise RuntimeError("Jeev is not running!")
 
+        logger.info('Stopping Jeev')
         try:
             self.modules.unload_all()
 
