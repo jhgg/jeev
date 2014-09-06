@@ -15,6 +15,11 @@ setup(
     keywords = "chat slack bot irc jeev",
     url = "https://github.com/jhgg/jeev",
     packages=find_packages(exclude=['modules']),
+    install_requires=[
+        'Flask>=0.10.1',
+        'requests>=2.4.0',
+        'gevent>=1.0.0'
+    ],
     scripts=['bin/jeev'],
     long_description=read('README.md'),
     classifiers=[
