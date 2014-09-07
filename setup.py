@@ -8,7 +8,7 @@ def read(fname):
 
 
 setup(
-    name="Jeev",
+    name="jeev",
     version=jeev.version.split('-')[0],
     author="Jacob Heinz",
     author_email="me@jh.gg",

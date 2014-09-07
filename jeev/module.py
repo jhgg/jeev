@@ -36,7 +36,7 @@ class Modules(object):
     def _import_module(self, name, module_instance):
         try:
             sys.modules['module'] = module_instance
-            name, module = import_first_matching_module(name, ['modules.%s', 'jeev.modules.%s'])
+            name, module = import_first_matching_module(name, ['modules.%s', 'jeev_modules.%s'])
             return module
 
         finally:
