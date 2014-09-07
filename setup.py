@@ -22,7 +22,6 @@ setup(
         'requests>=2.4.0',
         'gevent>=1.0.0'
     ],
-    package_data={'jeev': ['starter_template/*']},
     include_package_data=True,
     zip_safe=False,
     scripts=['bin/jeev'],

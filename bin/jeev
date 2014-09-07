@@ -1,6 +1,7 @@
 #! python
 import argparse
 from importlib import import_module
+import shutil
 import os
 import sys
 import jeev
@@ -32,7 +33,7 @@ def init(ns):
         raise Error("Directory %r already exists." % ns.directory)
 
     starter_template_path = os.path.join(jeev.__path__[0], 'starter_template')
-    shutil.copytree(starter_template_path, ns.directory)
+    shutil.copytree(starter_template_path, ns.directory, ignore=shutil.ignore_patterns("*.pyc"))
     print "Initialized jeev in", ns.directory
     print "You should now be able to change directory to it and then run 'jeev run'"
 

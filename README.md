@@ -11,9 +11,9 @@ This project is a work in progress, and is roughly documented.
 
 You will need Python 2.7, and setuptools. If you want, you can install Jeev in a virtual environment.
 
-Install jeev with pip:
+Install jeev (and his built in modules) with pip:
 
-    $ pip install jeev
+    $ pip install jeev jeev-modules
 
 This will install jeev, and his dependencies. It will also give you the `jeev` command which can be used to create
 an initial jeev configuration, and run the bot. Let's create an instance of jeev in the folder "myjeev":

@@ -7,10 +7,7 @@ adapter_opts = {
 modules = [
     'ping',
     'kittens',
-    'dealwithit',
-    'coin',
-    'decide',
-    'sudo'
+    'sample'
 ]
 
 web = True
