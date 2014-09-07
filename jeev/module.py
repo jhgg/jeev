@@ -5,6 +5,7 @@ import logging
 import re
 import gevent
 import sys
+from .utils.importing import import_first_matching_module
 from .utils.periodic import ModulePeriodic
 from .utils.g import G
 from .utils.env import EnvFallbackDict
@@ -33,13 +34,10 @@ class Modules(object):
             module._save_data()
 
     def _import_module(self, name, module_instance):
-        if '.' not in name:
-            name = 'modules.%s' % name
-
         try:
             sys.modules['module'] = module_instance
-            __import__(name)
-            return sys.modules[name]
+            name, module = import_first_matching_module(name, ['modules.%s', 'jeev.modules.%s'])
+            return module
 
         finally:
             sys.modules.pop('module')

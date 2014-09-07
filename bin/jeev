@@ -1,7 +1,9 @@
 #! python
 import argparse
 from importlib import import_module
+import os
 import sys
+import jeev
 
 parser = argparse.ArgumentParser(prog='jeev', description='Jeev')
 
@@ -11,12 +13,12 @@ init_parser.add_argument('directory')
 run_parser = subparsers.add_parser('run', help="Initializes an instance of jeev")
 run_parser.add_argument('--config', default='config.py')
 
-
 class Error(Exception):
     pass
 
 
 def init(ns):
+    import shutil
     try:
         import_module(ns.directory)
     except ImportError:
@@ -26,11 +28,19 @@ def init(ns):
                     "Python module and cannot be used as the name "
                     "of the jeev directory." % ns.directory)
 
-    print "init called", ns
+    if os.path.exists(ns.directory):
+        raise Error("Directory %r already exists." % ns.directory)
+
+    starter_template_path = os.path.join(jeev.__path__[0], 'starter_template')
+    shutil.copytree(starter_template_path, ns.directory)
+    print "Initialized jeev in", ns.directory
+    print "You should now be able to change directory to it and then run 'jeev run'"
 
 
 def run(ns):
-    import jeev
+    if os.getcwd() not in sys.path:
+        sys.path.insert(0, os.getcwd())
+
     import imp
     try:
         config = imp.load_source('config', ns.config)

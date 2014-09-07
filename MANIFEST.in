@@ -1,0 +1,3 @@
+recursive-include jeev/starter_template *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
