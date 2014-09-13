@@ -18,7 +18,7 @@ class SlackAdapter(object):
     def __init__(self, jeev, opts):
         self._jeev = jeev
         self._opts = opts
-        self._server = WSGIServer((self._opts('slack_listen_host', '0.0.0.0'),
+        self._server = WSGIServer((self._opts.get('slack_listen_host', '0.0.0.0'),
                                    int(self._opts.get('slack_listen_port', 8080))), self._wsgi_app)
 
         self._link_names = str(self._opts.get('slack_link_names', False)).upper() == 'TRUE'
@@ -42,7 +42,7 @@ class SlackAdapter(object):
     def _parse_message(self, data):
         data = dict(urlparse.parse_qsl(data))
 
-        if data['token'] == self._opts['token'] and data['team_domain'] == self._opts['team_name']:
+        if data['token'] == self._opts['slack_token'] and data['team_domain'] == self._opts['slack_team_name']:
             self._channel_id_cache[data['channel_name']] = data['channel_id']
             message = Message(data, data['channel_name'], data['user_name'], data['text'])
             self._jeev._handle_message(message)
