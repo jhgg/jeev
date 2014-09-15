@@ -286,7 +286,7 @@ class Module(object):
         """
         self._loaded_callbacks.append(f)
 
-    def unload(self, f):
+    def unloaded(self, f):
         """
             Register a function to be called before the module is unloaded.
         """
