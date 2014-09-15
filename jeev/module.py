@@ -41,7 +41,9 @@ class Modules(object):
 
         try:
             sys.modules['module'] = module_instance
-            return import_first_matching_module(name, ['modules.%s', 'jeev_modules.%s'], try_mod_name=('.' in name),
+            return import_first_matching_module(mod_name=name,
+                                                matches=['modules.%s', 'jeev_modules.%s'],
+                                                try_mod_name=('.' in name),
                                                 pre_import_hook=module_instance._set_module_name,
                                                 post_import_hook=remove_from_sys_modules)
 
