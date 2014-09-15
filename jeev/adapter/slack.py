@@ -54,14 +54,16 @@ class SlackAdapter(object):
         self._server.stop()
 
     def send_message(self, channel, message):
-        if channel not in self._channel_id_cache:
-            return
+        if channel in self._channel_id_cache:
+            channel = self._channel_id_cache[channel]
+        elif not channel.startswith('#'):
+            channel = '#' + channel
 
         args = {
             'username': self._jeev.name,
             'text': message,
             'link_names': self._link_names,
-            'channel': self._channel_id_cache[channel]
+            'channel': channel
         }
 
         spawn_raw(self._requests.post, self._send_url, json.dumps(args))
