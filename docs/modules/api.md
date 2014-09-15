@@ -55,7 +55,7 @@ that don't need to persist between restarts of Jeev or reloads of the module.
 ```python
 
 module.g.db = MyDatabaseResource()
-result = module.g.db.query("SELECT * FROM `bar`")
+result = module.g.db.query('SELECT * FROM `bar`')
 
 module.g.counter = 0
 module.g.counter += 1
@@ -96,8 +96,8 @@ Called whenever Jeev sees a message.
 
 @module.listen()
 def on_message(message):
-    print "Got message from", message.user, ":", message.message
-    message.reply_to_user('You said: %s" % message.message)
+    print 'Got message from', message.user, ':', message.message
+    message.reply_to_user('You said: %s' % message.message)
 ```
 
 ### `@module.command(command, priority=0)`
@@ -131,7 +131,7 @@ def what_is(message, thing):
     if thing == 'love':
         message.reply('BABY DONT HURT ME!')
     else:
-        message.reply('I'm not really sure what %s is' % thing)
+        message.reply("I'm not really sure what %s is" % thing)
         
         
 # In addition, named captures work as well.
@@ -152,14 +152,14 @@ Same as `@module.match(...)` but defaults to a case-insensitive match.
 
 ### `@module.respond(regex, flags=re.I, priority=0)`
 Same as `@module.hear(...)` but only gets called if the message is addressing the bot (meaning the message starts with 
-the bot name "jeev, throw me the facts!")
+the bot name, eg. "jeev, throw me the facts!")
 
 ## Function Decorators
 ## `@module.async(sync_return_val=None, timeout=0)`
 Makes it so that the function is called inside a greenlet. This is useful for functions which make web requests. 
 Although, a function that makes a request will never block Jeev, it will prevent the other message handlers from being 
 called for a specific message. However, since each incoming message is processed in it's own greenlet, a message handler
-that performs code that can be made concurrent with gevent will never delay delay the processing of new messages. Where
+that performs code that can be made concurrent with gevent will never delay the processing of new messages. Where
 this function really is useful is to set a timeout to the processing time of a handler.
 
 #### Example
@@ -174,7 +174,7 @@ def cat_fact(message):
     response = requests.get('http://catfacts-api.appspot.com/api/facts?number=1')
     if response.status_code == requests.codes.ok:
         json = response.json()
-        if json['success'] == "true":
+        if json['success'] == 'true':
             message.reply_to_user(json['facts'][0])
 ```
 
@@ -191,7 +191,7 @@ def sleep_for(message, seconds):
         sleep(int(seconds))
         
     except Timeout:
-        message.reply("OOPS! I slept for too long! Oh well :C")
+        message.reply('OOPS! I slept for too long! Oh well :C')
 ```
 
 ## Greenlet Functions
@@ -206,16 +206,16 @@ from gevent import sleep
 def background_task(what):
     print "I'm doing %s in the background... not sure what" % what
     sleep(50)
-    print "okay... it finished!"
+    print 'okay... it finished!'
 
 @module.hear('do (.*?) in the background')
 def do_background_task(message, what):
     module.spawn(background_task, what)
-    message.reply("okay! started background task to do %s!" % what)
+    message.reply('okay! started background task to do %s!' % what)
 ```
 
 
-### `moudle.spawn_after(delay, f, *args, **kwargs)`
+### `module.spawn_after(delay, f, *args, **kwargs)`
 Schedules a greenlet that will run `f` after `delay` seconds. The greenlet will be killed/unscheduled if it doesn't
 start/finish before the module unloads.
 
@@ -225,11 +225,11 @@ import random
 
 @module.hear('reply to me slowly')
 def reply_slowly(message):
-    module.spawn_after(random.randint(5, 10), message.reply, "is this slow enough?")
+    module.spawn_after(random.randint(5, 10), message.reply, 'is this slow enough?')
 
 ```
 
-### `module.periodic(interval, f, *args, **kwargs`
+### `module.periodic(interval, f, *args, **kwargs)`
 TODO: Document this
 
 ## Web
@@ -252,7 +252,7 @@ from flask import Response, request
 # Will get called when '/webtest' is requested.
 @module.app.route('/')
 def index():
-    return Response("Hello, I am {}".format(module.jeev.name))
+    return Response('Hello, I am {}'.format(module.jeev.name))
 
 # Will get called when '/webtest/webhook' gets a POST request that will send a message to a channel specified
 # in the POST body.
