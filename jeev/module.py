@@ -5,8 +5,7 @@ import logging
 import re
 import gevent
 import sys
-from .utils.importing import import_dotted_path
-from .utils.importing import import_first_matching_module
+from .utils.importing import import_first_matching_module, import_dotted_path
 from .utils.periodic import ModulePeriodic
 from .utils.g import G
 from .utils.env import EnvFallbackDict
