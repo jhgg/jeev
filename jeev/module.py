@@ -150,7 +150,7 @@ class Module(object):
         self.author = author
         self.description = description
         self.jeev = None
-        self.opts = EnvFallbackDict(self.name, opts)
+        self.opts = EnvFallbackDict(name, opts)
 
         self._name = name
         self._module_name = name
