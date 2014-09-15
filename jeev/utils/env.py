@@ -12,13 +12,13 @@ class EnvFallbackDict(object):
 
         This dict is read only, and will only return strings.
     """
-    __slots__ = ['module_name', '_data']
+    __slots__ = ['_module_name', '_data']
 
     def __init__(self, module_name, dict, **kwargs):
-        self.module_name = module_name
+        self._module_name = module_name
 
-        if self.module_name:
-            self.module_name = self.module_name.replace('.', '_')
+        if self._module_name:
+            self._module_name = self.module_name.replace('.', '_')
 
         self._data = {}
 
@@ -28,11 +28,19 @@ class EnvFallbackDict(object):
         if len(kwargs):
             self._data.update(kwargs)
 
+    @property
+    def module_name(self):
+        return self._module_name
+
+    @module_name.setter
+    def module_name(self, value):
+        self._module_name = value.replace('.', '_')
+
     def environ_key(self, key):
-        if not self.module_name:
+        if not self._module_name:
             return ('jeev_%s' % key).upper()
 
-        return ('jeev_%s_%s' % (self.module_name, key)).upper()
+        return ('jeev_%s_%s' % (self._module_name, key)).upper()
 
     def __contains__(self, item):
         if item in self._data:

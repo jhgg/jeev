@@ -43,7 +43,7 @@ def _is_right_import_error(mod_name, tb):
     return False
 
 
-def import_first_matching_module(mod_name, matches, try_mod_name=True):
+def import_first_matching_module(mod_name, matches, try_mod_name=True, pre_import_hook=None, post_import_hook=None):
     """
         Tries to import a module by running multiple patterns, for example:
 
@@ -69,6 +69,9 @@ def import_first_matching_module(mod_name, matches, try_mod_name=True):
         tries.append(match_name)
 
         try:
+            if pre_import_hook:
+                pre_import_hook(match_name)
+
             __import__(match_name)
             return match_name, sys.modules[match_name]
         except ImportError:
@@ -77,5 +80,9 @@ def import_first_matching_module(mod_name, matches, try_mod_name=True):
 
             if _is_right_import_error(match_name, exc_info[2]):
                 raise exc_info
+        finally:
+
+            if post_import_hook:
+                post_import_hook(match_name)
 
     raise ImportError('No module named %s (tried: %s)' % (mod_name, ', '.join(tries)))

@@ -5,6 +5,7 @@ import logging
 import re
 import gevent
 import sys
+from .utils.importing import import_dotted_path
 from .utils.importing import import_first_matching_module
 from .utils.periodic import ModulePeriodic
 from .utils.g import G
@@ -34,14 +35,19 @@ class Modules(object):
             module._save_data()
 
     def _import_module(self, name, module_instance):
+        def remove_from_sys_modules(module_name):
+            for k in sys.modules.keys():
+                if k.startswith(module_name):
+                    del sys.modules[k]
+
         try:
             sys.modules['module'] = module_instance
-            name, module = import_first_matching_module(name, ['modules.%s', 'jeev_modules.%s'])
-            return module
+            return import_first_matching_module(name, ['modules.%s', 'jeev_modules.%s'], try_mod_name=('.' in name),
+                                                pre_import_hook=module_instance._set_module_name,
+                                                post_import_hook=remove_from_sys_modules)
 
         finally:
-            sys.modules.pop('module')
-            sys.modules.pop(name, None)
+            sys.modules.pop('module', None)
 
     def load_all(self, modules=None):
         """
@@ -76,7 +82,7 @@ class Modules(object):
         try:
             logger.debug("Loading module %s", module_name)
 
-            module_instance = Module(module_name)
+            module_instance = Module(module_name, opts)
             imported_module = self._import_module(module_name, module_instance)
 
             module_instance.author = getattr(
@@ -86,7 +92,7 @@ class Modules(object):
                 imported_module, 'description', getattr(imported_module, '__doc__', None))
 
             logger.debug("Registering module %s", module_name)
-            module_instance._register(self, opts)
+            module_instance._register(self)
             self._module_list.append(module_instance)
             self._module_dict[module_name] = module_instance
 
@@ -137,17 +143,18 @@ class Module(object):
 
     """
     STOP = object()
-    __slots__ = ['jeev', 'opts', '_name', 'author', 'description',
+    __slots__ = ['jeev', 'opts', '_name', 'author', 'description', '_module_name',
                  '_commands', '_message_listeners', '_regex_listeners', '_loaded_callbacks', '_unload_callbacks',
                  '_running_greenlets', '_data', '_app', '_g']
 
-    def __init__(self, name, author=None, description=None):
+    def __init__(self, name, opts, author=None, description=None):
         self.author = author
         self.description = description
         self.jeev = None
-        self.opts = None
+        self.opts = EnvFallbackDict(self.name, opts)
 
         self._name = name
+        self._module_name = name
         self._g = None
         self._commands = defaultdict(list)
         self._message_listeners = []
@@ -175,9 +182,8 @@ class Module(object):
         gevent.killall(list(self._running_greenlets), block=False)
         self._running_greenlets.clear()
 
-    def _register(self, modules, opts):
+    def _register(self, modules):
         self.jeev = modules.jeev
-        self.opts = EnvFallbackDict(self.name, opts)
         for callback in self._loaded_callbacks:
             self._call_function(callback)
 
@@ -233,9 +239,7 @@ class Module(object):
             If you want to use your own WSGI handler, you can simply call `module.set_wsgi_handler(handler)` before
             accessing `module.app`.
         """
-        import flask
-
-        return flask.Flask('modules.%s' % self.name)
+        return import_dotted_path('flask.Flask')(self.module_name)
 
     def _save_data(self, close=False):
         if self._data is not None:
@@ -255,9 +259,27 @@ class Module(object):
             self._g.__dict__.clear()
             self._g = None
 
+    def _set_module_name(self, module_name):
+        self._module_name = module_name
+
     @property
     def name(self):
+        """
+            The name of the module set in the config to be loaded.
+        """
         return self._name
+
+    @property
+    def module_name(self):
+        """
+            The full module name (import path)
+
+            >>> print self.name
+            sample
+            >>> print self.module_name
+            modules.sample
+        """
+        return self._module_name
 
     @property
     def data(self):
