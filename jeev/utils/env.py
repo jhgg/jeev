@@ -67,11 +67,11 @@ class EnvFallbackDict(object):
 
     def __getitem__(self, key):
         if key in self._data:
-            return self.cast_val(self._data[key])
+            return self.cast_val(key, self._data[key])
 
         env_key = self.environ_key(key)
         if env_key in os.environ:
-            return self.cast_val(os.environ[env_key])
+            return self.cast_val(key, os.environ[env_key])
 
         raise KeyError(key)
 
@@ -118,8 +118,7 @@ class EnvFallbackDict(object):
 
         return self[key]
 
-    @staticmethod
-    def cast_val(val):
+    def cast_val(self, key, val):
         if not isinstance(val, basestring):
             val = str(val)
 

@@ -11,6 +11,7 @@ from .utils.g import G
 from .utils.env import EnvFallbackDict
 
 logger = logging.getLogger('jeev.module')
+_sentinel = object()
 
 
 class Modules(object):
@@ -80,10 +81,10 @@ class Modules(object):
         if module_name in self._reserved_module_names:
             raise RuntimeError("Cannot load reserved module named %s" % module_name)
 
-        try:
-            logger.debug("Loading module %s", module_name)
+        logger.debug("Loading module %s", module_name)
+        module_instance = Module(module_name, opts)
 
-            module_instance = Module(module_name, opts)
+        try:
             imported_module = self._import_module(module_name, module_instance)
 
             module_instance.author = getattr(
@@ -99,6 +100,17 @@ class Modules(object):
 
             logger.info("Loaded module %s", module_name)
 
+        except Module.ConfigError, e:
+            logger.error("Could not load module %s. Some options failed to validate:", module_name)
+            if hasattr(e, 'error_dict'):
+                for k, v in e.error_dict.iteritems():
+                    logger.error('\t%s: %s' % (k, ', '.join(v)))
+                    if k in module_instance.opts._opt_definitions:
+                        logger.error('\t * description: %s' % module_instance.opts._opt_definitions[k].description)
+
+                    logger.error('\t * environ key: %s' % module_instance.opts.environ_key(k))
+
+            raise e
         except Exception, e:
             logger.exception("Could not load module %s", module_name)
             raise e
@@ -146,13 +158,13 @@ class Module(object):
     STOP = object()
     __slots__ = ['jeev', 'opts', '_name', 'author', 'description', '_module_name',
                  '_commands', '_message_listeners', '_regex_listeners', '_loaded_callbacks', '_unload_callbacks',
-                 '_running_greenlets', '_data', '_app', '_g']
+                 '_running_greenlets', '_data', '_app', '_g', '_opt_definitions']
 
     def __init__(self, name, opts, author=None, description=None):
         self.author = author
         self.description = description
         self.jeev = None
-        self.opts = EnvFallbackDict(name, opts)
+        self.opts = OptFallbackDict(name, opts)
 
         self._name = name
         self._module_name = name
@@ -165,6 +177,7 @@ class Module(object):
         self._running_greenlets = set()
         self._data = None
         self._app = None
+        self._opt_definitions = None
 
     def _unload(self):
         for callback in self._unload_callbacks:
@@ -185,8 +198,30 @@ class Module(object):
 
     def _register(self, modules):
         self.jeev = modules.jeev
+        self._validate_opts()
         for callback in self._loaded_callbacks:
             self._call_function(callback)
+
+    def _validate_opts(self):
+        error_dict = defaultdict(list)
+
+        for definition in self.opts._opt_definitions.itervalues():
+            if definition.default is _sentinel and definition.name not in self.opts:
+                error_dict[definition.name].append("This option is required.")
+
+        defunct_keys = error_dict.keys()
+
+        for validator in self.opts._opt_validators:
+            if validator.name in defunct_keys:
+                continue
+
+            try:
+                validator.clean(self.opts)
+            except Module.ConfigError as e:
+                error_dict[e.variable_name].append(e.error_message)
+
+        if error_dict:
+            raise Module.ConfigError(error_dict)
 
     def _call_function(self, f, *args, **kwargs):
         try:
@@ -302,6 +337,31 @@ class Module(object):
             self._g = G()
 
         return self._g
+
+    def opt(self, *args, **kwargs):
+        """
+        Registers an option validator that allows you to check for a given option to be present, and if it isn't,
+        tell Jeev to automatically throw an exception when the module is trying to be loaded, providing the user
+        with the required option name and a description.
+
+        Optionally, you can set a casting function, to convert the option from its string form to something else,
+        or even, a default value, if it does not exist.
+        """
+        self.opts._register_opt(Opt(*args, **kwargs))
+
+    def opt_validator(self, *names):
+        """
+        Registers a validator function that will be called with a given opt's value. The function must either raise
+        a Module.ConfigError, or return a value that the opt should be set to. This lets you override (or clean)
+        any option.
+        """
+        def register_validator(callback):
+            for name in names:
+                self.opts._register_validator(OptValidator(name, callback))
+
+            return callback
+
+        return register_validator
 
     def loaded(self, f):
         """
@@ -470,3 +530,132 @@ class Module(object):
             Convenience function to send a message to a channel.
         """
         self.jeev.send_message(channel, message)
+
+    class ConfigError(Exception):
+        def __init__(self, variable_name, error_message=None):
+            if isinstance(variable_name, dict):
+                self.error_dict = variable_name
+
+            else:
+                self.variable_name = variable_name
+                self.error_message = error_message
+
+        def __repr__(self):
+            if hasattr(self, 'error_dict'):
+                return '<ConfigError: %r>' % self.error_dict
+
+            return '<ConfigError: %s, %s>' % (self.variable_name, self.error_message)
+
+
+class Opt(object):
+    """
+        Stores the metadata for a given option.
+    """
+    __slots__ = ['name', 'description', 'cast', 'default']
+
+    def __init__(self, name, description, cast=None, default=_sentinel):
+        self.name = name
+        self.description = description
+        self.cast = cast
+        self.default = default
+
+
+class OptValidator(object):
+    """
+        Stores a validator for a given option.
+    """
+    __slots__ = ['name', 'callback']
+
+    def __init__(self, name, callback):
+        self.name = name
+        self.callback = callback
+
+    def clean(self, opt_fallback_dict):
+        value = opt_fallback_dict[self.name]
+        try:
+            new_value = self.callback(value)
+
+            # If the value changed, we'll override it in the opt_fallback_dict's private _data.
+            if new_value is not None and value != new_value:
+                opt_fallback_dict._opt_overrides[self.name] = new_value
+
+        except Module.ConfigError as e:
+            if e.error_message is None and e.variable_name:
+                e.error_message = e.variable_name
+                e.variable_name = self.name
+
+            raise e
+
+
+class OptFallbackDict(EnvFallbackDict):
+    """
+        An addition to EnvFallbackDict that supports definitions, validators and overrides.
+    """
+    def __init__(self, *args, **kwargs):
+        # The Opt definitions.
+        self._opt_definitions = {}
+        # A list of OptValidators to call when the module is overriden.
+        self._opt_validators = []
+        # A dict containing opt overrides that will be returned without being cast (set by the opt validators)
+        self._opt_overrides = {}
+
+        super(OptFallbackDict, self).__init__(*args, **kwargs)
+
+    def __getitem__(self, key):
+        # See if the key is overridden first. If it is, we take no further action, as it will be returned in it's
+        # original, uncasted form.
+        if key in self._opt_overrides:
+            return self._opt_overrides[key]
+
+        # Try to fetch it from _data, and the environ.
+        try:
+            return super(OptFallbackDict, self).__getitem__(key)
+
+        except KeyError:
+            # If it didn't exist, see if a definition has a default for the given key.
+            if key in self._opt_definitions:
+                default = self._opt_definitions[key].default
+                if default is not _sentinel:
+                    return self.cast_val(key, self._opt_definitions[key].default)
+
+        # Not anywhere, now we can raise KeyError like usual.
+        raise KeyError(key)
+
+    def __contains__(self, item):
+        # Again, see if the item was somehow overridden.
+        if item in self._opt_overrides:
+            return True
+
+        # Check EnvFallbackDict.
+        if super(OptFallbackDict, self).__contains__(item):
+            return True
+
+        # See if it has a default.
+        if item in self._opt_definitions:
+            default = self._opt_definitions[item].default
+            if default is not _sentinel:
+                return True
+
+        return False
+
+    def cast_val(self, key, val):
+        # See if the opt definitions specifcy a custom casting function.
+        if key in self._opt_definitions:
+            cast = self._opt_definitions[key].cast
+            if cast:
+                return cast(val)
+
+        # Otherwise use the default cast to string implementation.
+        return super(OptFallbackDict, self).cast_val(key, val)
+
+    def _register_opt(self, opt):
+        self._opt_definitions[opt.name] = opt
+
+    def _unregister_opt(self, opt):
+        if isinstance(opt, Opt):
+            opt = opt.name
+
+        self._opt_definitions.pop(opt)
+
+    def _register_validator(self, opt_validator):
+        self._opt_validators.append(opt_validator)
