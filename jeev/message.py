@@ -21,19 +21,19 @@ class Message(object):
 
     def reply_to_user(self, message):
         message = '%s: %s' % (self.user, message)
-        self.reply(message)
+        return self.reply(message)
 
     def reply(self, message):
-        self._jeev.send_message(self.channel, message)
+        return self._jeev.send_message(self.channel, message)
 
     def reply_with_attachment(self, *attachment):
-        self._jeev.send_attachment(self.channel, *attachment)
+        return self._jeev.send_attachment(self.channel, *attachment)
 
     def reply_random(self, choices):
-        self.reply_to_user(random.choice(choices))
+        return self.reply_to_user(random.choice(choices))
 
     def reply_with_one_of(self, *choices):
-        self.reply_random(choices)
+        return self.reply_random(choices)
 
     reply_with_attachments = reply_with_attachment
 

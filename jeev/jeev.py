@@ -98,7 +98,7 @@ class Jeev(object):
         logger.info("Loading modules")
         self.modules.load_all()
 
-        if getattr(self.config, 'web', False) or str(self._opts.get('web', False).upper() == 'TRUE'):
+        if getattr(self.config, 'web', False) or str(self._opts.get('web', False)).upper() == 'TRUE':
             self._web = Web(self, EnvFallbackDict('web', getattr(self.config, 'web_opts', {})))
             self._web.start()
 
@@ -147,7 +147,7 @@ class Jeev(object):
         """
             Convenience function to send a message to a channel.
         """
-        self.adapter.send_message(channel, message)
+        return self.adapter.send_message(channel, message)
 
     def send_attachment(self, channel, *attachments):
         if hasattr(self.adapter, 'send_attachment'):
