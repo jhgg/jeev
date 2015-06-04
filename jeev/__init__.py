@@ -5,6 +5,16 @@ __author__ = 'mac'
 
 def run(config):
     import atexit
+    import sys
+
+    # Reset sys.modules so that g-event can re-monkeypatch.
+    # This is needed because distribute's pkg_resources imports urllib & co, before we can properly monkey patch it. ;(
+    modules_to_reset = {'urllib', 'socket', '_ssl', 'ssl', 'select', 'thread',
+                        'threading', 'time', 'os', 'subprocess'}
+    for k in sys.modules.keys():
+        if k.startswith('jeev.') or k in modules_to_reset:
+            del sys.modules[k]
+
     from gevent.monkey import patch_all
 
     patch_all()
