@@ -37,6 +37,10 @@ class Message(object):
 
     reply_with_attachments = reply_with_attachment
 
+    @property
+    def is_direct_message(self):
+        return getattr(self.channel, 'is_direct_message', False)
+
 
 class Attachment(object):
     __slots__ = ['pretext', 'text', 'fallback', '_color', '_fields', '_message_overrides']

@@ -64,6 +64,8 @@ class SlackAdapter(object):
             return '<SlackUser id=%r, name=%r, presence=%s>' % (self.id, self.name, self.presence)
 
     class _SlackChannelBase(SlackObject):
+        is_direct_message = False
+
         def __init__(self, data, adapter):
             super(SlackAdapter._SlackChannelBase, self).__init__(data)
             self._adapter = adapter
@@ -115,6 +117,8 @@ class SlackAdapter(object):
             )
 
     class SlackDirectMessage(_SlackChannelBase):
+        is_direct_message = True
+
         @property
         def user(self):
             return self._adapter._users[self.data['user']]

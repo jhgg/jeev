@@ -47,7 +47,7 @@ class Jeev(object):
         start = time.time()
 
         message._jeev = self
-        message.targeting_jeev = bool(self._targeting_me(message.message))
+        message.targeting_jeev = message.is_direct_message or bool(self._targeting_me(message.message))
         self.modules._handle_message(message)
         end = time.time()
 
