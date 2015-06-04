@@ -18,6 +18,10 @@ chkconfig_parser = subparsers.add_parser('chkconfig',
                                          help="Checks the config of Jeev to make sure there are no errors.")
 chkconfig_parser.add_argument('--config', default='config.py')
 
+modopts_parser = subparsers.add_parser('modopts',
+                                       help="Shows the configuration available for the modules to be loaded.")
+modopts_parser.add_argument('--config', default='config.py')
+
 
 class Error(Exception):
     pass
@@ -66,6 +70,11 @@ def run(ns):
 def chkconfig(ns):
     config = _find_config(ns)
     jeev.chkconfig(config)
+
+
+def modopts(ns):
+    config = _find_config(ns)
+    jeev.modopts(config)
 
 
 try:

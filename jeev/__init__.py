@@ -33,15 +33,18 @@ def chkconfig(config):
 
     for module_name, opts in j.modules.iter_module_names_and_opts():
         try:
-            j.modules.load(module_name, opts, log_error=False)
+            module_instance = j.modules.load(module_name, opts, log_error=False, register=False)
 
         except ImportError:
             print 'ERROR: Module %s not found.' % module_name
+            continue
+
+        try:
+            module_instance._register(j.modules)
 
         except Module.ConfigError as e:
-            module_instance = e.module_instance
 
-            print("ERROR: Could not load module %s. Some options failed to validate:" % module_name)
+            print "ERROR: Could not load module %s. Some options failed to validate:" % module_name
             if hasattr(e, 'error_dict'):
                 for k, v in e.error_dict.iteritems():
                     print('\t%s: %s' % (k, ', '.join(v)))
@@ -53,3 +56,35 @@ def chkconfig(config):
 
         else:
             print '%s OK' % module_name
+
+
+def modopts(config):
+    from .jeev import Jeev
+    from .module import Module
+
+    j = Jeev(config)
+
+    for module_name, opts in j.modules.iter_module_names_and_opts():
+        try:
+            module_instance = j.modules.load(module_name, opts, log_error=False, register=False)
+
+        except ImportError:
+            print 'ERROR: Module %s not found.' % module_name
+            continue
+
+        opt_definitions = module_instance.opts._opt_definitions
+        if not opt_definitions:
+            print 'Module %s has no options.' % module_name
+            continue
+
+        print 'Module %s:' % module_name
+        for opt in opt_definitions.values():
+            print '  * %s:' % opt.name
+            print '     * Description:     %s' % opt.description
+
+            if opt.has_default:
+                print '     * Default:         %s' % opt.default
+
+            print '     * Environment Key: %s' % module_instance.opts.environ_key(opt.name)
+
+            print

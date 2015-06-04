@@ -78,7 +78,7 @@ class Modules(object):
         for module_name, opts in modules.iteritems():
             yield module_name, opts
 
-    def load(self, module_name, opts, log_error=True):
+    def load(self, module_name, opts, log_error=True, register=True):
         """
             Load a module by name.
         """
@@ -101,9 +101,10 @@ class Modules(object):
                 imported_module, 'description', getattr(imported_module, '__doc__', None))
 
             logger.debug("Registering module %s", module_name)
-            module_instance._register(self)
-            self._module_list.append(module_instance)
-            self._module_dict[module_name] = module_instance
+            if register:
+                module_instance._register(self)
+                self._module_list.append(module_instance)
+                self._module_dict[module_name] = module_instance
 
             logger.info("Loaded module %s", module_name)
 
@@ -117,11 +118,15 @@ class Modules(object):
                             logger.error('\t * description: %s' % module_instance.opts._opt_definitions[k].description)
 
                         logger.error('\t * environ key: %s' % module_instance.opts.environ_key(k))
-            e.module_instance = module_instance
+
             raise e
         except Exception, e:
-            logger.exception("Could not load module %s", module_name)
+            if log_error:
+                logger.exception("Could not load module %s", module_name)
+
             raise e
+
+        return module_instance
 
     def unload(self, module_name):
         """
@@ -572,6 +577,10 @@ class Opt(object):
         self.cast = cast
         self.default = default
 
+    @property
+    def has_default(self):
+        return self.default is not _sentinel
+
 
 class OptValidator(object):
     """
@@ -628,9 +637,9 @@ class OptFallbackDict(EnvFallbackDict):
         except KeyError:
             # If it didn't exist, see if a definition has a default for the given key.
             if key in self._opt_definitions:
-                default = self._opt_definitions[key].default
-                if default is not _sentinel:
-                    return self.cast_val(key, self._opt_definitions[key].default)
+                opt = self._opt_definitions[key]
+                if opt.has_default:
+                    return self.cast_val(key, opt.default)
 
         # Not anywhere, now we can raise KeyError like usual.
         raise KeyError(key)
