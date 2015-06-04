@@ -20,7 +20,9 @@ class Message(object):
         return "<Message user: {m.user}, channel: {m.channel}, message: {m.message}>".format(m=self)
 
     def reply_to_user(self, message):
-        message = '%s: %s' % (self.user, message)
+        if not self.is_direct_message:
+            message = '%s: %s' % (self.user, message)
+
         return self.reply(message)
 
     def reply(self, message):
