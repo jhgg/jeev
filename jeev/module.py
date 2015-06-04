@@ -55,6 +55,13 @@ class Modules(object):
         """
             Loads all the modules defined in Jeev's configuration
         """
+        for module_name, opts in self.iter_module_names_and_opts(modules):
+            self.load(module_name, opts)
+
+        for module in self._module_list:
+            module._loaded()
+
+    def iter_module_names_and_opts(self, modules=None):
         if modules is None:
             if 'modules' in self.jeev._opts:
                 modules = self.jeev._opts['modules']
@@ -69,9 +76,9 @@ class Modules(object):
             modules = {k: {} for k in modules}
 
         for module_name, opts in modules.iteritems():
-            self.load(module_name, opts)
+            yield module_name, opts
 
-    def load(self, module_name, opts):
+    def load(self, module_name, opts, log_error=True):
         """
             Load a module by name.
         """
@@ -101,15 +108,16 @@ class Modules(object):
             logger.info("Loaded module %s", module_name)
 
         except Module.ConfigError, e:
-            logger.error("Could not load module %s. Some options failed to validate:", module_name)
-            if hasattr(e, 'error_dict'):
-                for k, v in e.error_dict.iteritems():
-                    logger.error('\t%s: %s' % (k, ', '.join(v)))
-                    if k in module_instance.opts._opt_definitions:
-                        logger.error('\t * description: %s' % module_instance.opts._opt_definitions[k].description)
+            if log_error:
+                logger.error("Could not load module %s. Some options failed to validate:", module_name)
+                if hasattr(e, 'error_dict'):
+                    for k, v in e.error_dict.iteritems():
+                        logger.error('\t%s: %s' % (k, ', '.join(v)))
+                        if k in module_instance.opts._opt_definitions:
+                            logger.error('\t * description: %s' % module_instance.opts._opt_definitions[k].description)
 
-                    logger.error('\t * environ key: %s' % module_instance.opts.environ_key(k))
-
+                        logger.error('\t * environ key: %s' % module_instance.opts.environ_key(k))
+            e.module_instance = module_instance
             raise e
         except Exception, e:
             logger.exception("Could not load module %s", module_name)
@@ -199,6 +207,8 @@ class Module(object):
     def _register(self, modules):
         self.jeev = modules.jeev
         self._validate_opts()
+
+    def _loaded(self):
         for callback in self._loaded_callbacks:
             self._call_function(callback)
 
@@ -355,6 +365,7 @@ class Module(object):
         a Module.ConfigError, or return a value that the opt should be set to. This lets you override (or clean)
         any option.
         """
+
         def register_validator(callback):
             for name in names:
                 self.opts._register_validator(OptValidator(name, callback))
@@ -532,6 +543,8 @@ class Module(object):
         self.jeev.send_message(channel, message)
 
     class ConfigError(Exception):
+        module_instance = None
+
         def __init__(self, variable_name, error_message=None):
             if isinstance(variable_name, dict):
                 self.error_dict = variable_name
@@ -591,6 +604,7 @@ class OptFallbackDict(EnvFallbackDict):
     """
         An addition to EnvFallbackDict that supports definitions, validators and overrides.
     """
+
     def __init__(self, *args, **kwargs):
         # The Opt definitions.
         self._opt_definitions = {}

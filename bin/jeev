@@ -14,12 +14,18 @@ init_parser.add_argument('directory')
 run_parser = subparsers.add_parser('run', help="Initializes an instance of jeev")
 run_parser.add_argument('--config', default='config.py')
 
+chkconfig_parser = subparsers.add_parser('chkconfig',
+                                         help="Checks the config of Jeev to make sure there are no errors.")
+chkconfig_parser.add_argument('--config', default='config.py')
+
+
 class Error(Exception):
     pass
 
 
 def init(ns):
     import shutil
+
     try:
         import_module(ns.directory)
     except ImportError:
@@ -38,17 +44,29 @@ def init(ns):
     print "You should now be able to change directory to it and then run 'jeev run'"
 
 
-def run(ns):
+def _find_config(ns):
     if os.getcwd() not in sys.path:
         sys.path.insert(0, os.getcwd())
 
     import imp
+
     try:
         config = imp.load_source('config', ns.config)
     except IOError:
         config = object()
 
+    return config
+
+
+def run(ns):
+    config = _find_config(ns)
     jeev.run(config)
+
+
+def chkconfig(ns):
+    config = _find_config(ns)
+    jeev.chkconfig(config)
+
 
 try:
     ns = parser.parse_args(sys.argv[1:])
