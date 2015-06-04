@@ -25,9 +25,8 @@ def run(config):
         pass
 
 
-def chkconfig(config):
+def _iter_modules(config):
     from .jeev import Jeev
-    from .module import Module
 
     j = Jeev(config)
 
@@ -39,6 +38,13 @@ def chkconfig(config):
             print 'ERROR: Module %s not found.' % module_name
             continue
 
+        yield module_name, module_instance, j
+
+
+def chkconfig(config):
+    from .module import Module
+
+    for module_name, module_instance, j in _iter_modules(config):
         try:
             module_instance._register(j.modules)
 
@@ -59,19 +65,9 @@ def chkconfig(config):
 
 
 def modopts(config):
-    from .jeev import Jeev
     from .module import Module
 
-    j = Jeev(config)
-
-    for module_name, opts in j.modules.iter_module_names_and_opts():
-        try:
-            module_instance = j.modules.load(module_name, opts, log_error=False, register=False)
-
-        except ImportError:
-            print 'ERROR: Module %s not found.' % module_name
-            continue
-
+    for module_name, module_instance, j in _iter_modules(config):
         opt_definitions = module_instance.opts._opt_definitions
         if not opt_definitions:
             print 'Module %s has no options.' % module_name
@@ -80,11 +76,11 @@ def modopts(config):
         print 'Module %s:' % module_name
         for opt in opt_definitions.values():
             print '  * %s:' % opt.name
-            print '     * Description:     %s' % opt.description
+            print '     - description: %s' % opt.description
 
             if opt.has_default:
-                print '     * Default:         %s' % opt.default
+                print '     - default:     %s' % opt.default
 
-            print '     * Environment Key: %s' % module_instance.opts.environ_key(opt.name)
+            print '     - environ key: %s' % module_instance.opts.environ_key(opt.name)
 
             print
