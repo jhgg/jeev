@@ -58,9 +58,6 @@ class Modules(object):
         for module_name, opts in self.iter_module_names_and_opts(modules):
             self.load(module_name, opts)
 
-        for module in self._module_list:
-            module._loaded()
-
     def iter_module_names_and_opts(self, modules=None):
         if modules is None:
             if 'modules' in self.jeev._opts:
@@ -78,7 +75,7 @@ class Modules(object):
         for module_name, opts in modules.iteritems():
             yield module_name, opts
 
-    def load(self, module_name, opts, log_error=True, register=True):
+    def load(self, module_name, opts, log_error=True, register=True, call_loaded=True):
         """
             Load a module by name.
         """
@@ -103,6 +100,10 @@ class Modules(object):
             logger.debug("Registering module %s", module_name)
             if register:
                 module_instance._register(self)
+
+                if call_loaded:
+                    module_instance._loaded()
+
                 self._module_list.append(module_instance)
                 self._module_dict[module_name] = module_instance
 
