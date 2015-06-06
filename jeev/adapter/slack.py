@@ -327,13 +327,18 @@ class SlackAdapter(object):
             return self._jeev._handle_message(message)
 
     def _handle_user_change(self, data):
-        user = self._users[data['user']['id']]
+        user = self._get_user(data['user']['id'])
+        if user is None:
+            return
         user._update(**data['user'])
         self._users.add(user)
         self._broadcast_event(events.User.Changed, user=user)
 
     def _handle_presence_change(self, data):
-        user = self._users[data['user']]
+        # For reasons that aren't clear, slack does a presence change notification before telling jeev about a new user
+        user = self._get_user(data['user'])
+        if user is None:
+            return
         user._update(presence=data['presence'])
         self._broadcast_event(events.User.PresenceChanged, user=user)
 
@@ -400,6 +405,9 @@ class SlackAdapter(object):
 
         for user in login_data['users']:
             self._users.add(self.SlackUser(user))
+
+        for group in login_data['groups']:
+            self._groups.add(self.SlackGroup(group, self))
 
         for dm in login_data['ims']:
             self._dms.add(self.SlackDirectMessage(dm, self))
@@ -468,6 +476,15 @@ class SlackAdapter(object):
             return self._groups[id]
         else:
             return self._channels[id]
+
+    def _get_user(self, id):
+        if id not in self._users:
+            user = self.api.user.info(user=id)
+            if not user['ok']:
+                return None
+            self._users.add(self.SlackUser(user['user']))
+
+        return self._users[id]
 
 
 adapter = SlackAdapter

@@ -54,4 +54,10 @@ class UnicodeShelveWrapper(UserDict.DictMixin):
     def __delitem__(self, key):
         del self.shelf[key.encode('utf8')]
 
+    def sync(self):
+        self.shelf.sync()
+
+    def close(self):
+        self.shelf.close()
+
 storage = ShelveStore
