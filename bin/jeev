@@ -1,4 +1,4 @@
-#! python
+#! /usr/bin/env python
 import argparse
 from importlib import import_module
 import os
@@ -43,8 +43,8 @@ def init(ns):
 
     starter_template_path = os.path.join(jeev.__path__[0], 'starter_template')
     shutil.copytree(starter_template_path, ns.directory, ignore=shutil.ignore_patterns("*.pyc"))
-    print "Initialized jeev in", ns.directory
-    print "You should now be able to change directory to it and then run 'jeev run'"
+    print("Initialized jeev in", ns.directory)
+    print("You should now be able to change directory to it and then run 'jeev run'")
 
 
 def _find_config(ns):
@@ -80,5 +80,5 @@ try:
     ns = parser.parse_args(sys.argv[1:])
     globals()[ns.command](ns)
 
-except Error, e:
+except Error as e:
     sys.stderr.write("ERROR: %s\n" % e.message)

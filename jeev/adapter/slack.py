@@ -116,6 +116,59 @@ class SlackAdapter(object):
                 self.id, self.name, self.members
             )
 
+    class _SlackGroupBase(SlackObject):
+        is_direct_message = False
+
+        def __init__(self, data, adapter):
+            super(SlackAdapter._SlackGroupBase, self).__init__(data)
+            self._adapter = adapter
+
+        @property
+        def topic(self):
+            if 'topic' in self.data:
+                return self.data['topic']['value']
+
+        @topic.setter
+        def topic(self, val):
+            if val != self.data['topic']:
+                self._adapter.api.groups.setTopic(channel=self, topic=val)
+
+        @property
+        def purpose(self):
+            if 'purpose' in self.data:
+                return self.data['purpose']['value']
+
+        @purpose.setter
+        def purpose(self, val):
+            raise NotImplementedError("Bots cannot set channel purpose.")
+
+    class SlackGroup(_SlackGroupBase):
+        @property
+        def members(self):
+            members = []
+            for m in self.data['members']:
+                members.append(self._adapter._users[m])
+
+            return members
+
+        def _left(self, archive=False):
+            keep_keys = 'created', 'creator', 'id', 'is_archived', 'is_channel', 'is_general'
+            for k in self.data.keys():
+                if k not in keep_keys:
+                    del self.data[k]
+
+            self.data.update(
+                members=[],
+                is_member=False
+            )
+            if archive:
+                self.data['is_archived'] = True
+
+        def __repr__(self):
+            return "<SlackGroup id=%r, name=%r, members=%r>" % (
+                self.id, self.name, self.members
+            )
+
     class SlackDirectMessage(_SlackChannelBase):
         is_direct_message = True
 
@@ -327,13 +380,18 @@ class SlackAdapter(object):
             return self._jeev._handle_message(message)
 
     def _handle_user_change(self, data):
-        user = self._users[data['user']['id']]
+        user = self._get_user(data['user']['id'])
+        if user is None:
+            return
         user._update(**data['user'])
         self._users.add(user)
         self._broadcast_event(events.User.Changed, user=user)
 
     def _handle_presence_change(self, data):
-        user = self._users[data['user']]
+        # For reasons that aren't clear, slack does a presence change notification before telling jeev about a new user
+        user = self._get_user(data['user'])
+        if user is None:
+            return
         user._update(presence=data['presence'])
         self._broadcast_event(events.User.PresenceChanged, user=user)
 
@@ -400,6 +458,9 @@ class SlackAdapter(object):
 
         for user in login_data['users']:
             self._users.add(self.SlackUser(user))
+
+        for group in login_data['groups']:
+            self._groups.add(self.SlackGroup(group, self))
 
         for dm in login_data['ims']:
             self._dms.add(self.SlackDirectMessage(dm, self))
@@ -468,6 +529,15 @@ class SlackAdapter(object):
             return self._groups[id]
         else:
             return self._channels[id]
+
+    def _get_user(self, id):
+        if id not in self._users:
+            user = self.api.user.info(user=id)
+            if not user['ok']:
+                return None
+            self._users.add(self.SlackUser(user['user']))
+
+        return self._users[id]
 
 
 adapter = SlackAdapter
