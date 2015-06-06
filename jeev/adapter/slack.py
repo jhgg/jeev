@@ -321,7 +321,7 @@ class SlackAdapter(object):
 
     def _handle_message(self, data):
         if 'subtype' not in data and 'reply_to' not in data:
-            message = Message(data, self._get_channel_or_dm(data['channel']), self._users[data['user']],
+            message = Message(data, self._get_channel_group_or_dm(data['channel']), self._users[data['user']],
                               data['text'])
 
             return self._jeev._handle_message(message)
@@ -461,10 +461,11 @@ class SlackAdapter(object):
         self._last_id += 1
         return self._last_id
 
-    def _get_channel_or_dm(self, id):
+    def _get_channel_group_or_dm(self, id):
         if id.startswith('D'):
             return self._dms[id]
-
+        elif id.startswith('G'):
+            return self._groups[id]
         else:
             return self._channels[id]
 
