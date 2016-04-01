@@ -140,7 +140,7 @@ class SlackAdapter(object):
 
         @purpose.setter
         def purpose(self, val):
-            raise NotImplementedError("Bots cannot set channel purpose.")
+            raise NotImplementedError("Bots cannot set group purpose.")
 
     class SlackGroup(_SlackGroupBase):
         @property
@@ -152,7 +152,7 @@ class SlackAdapter(object):
             return members
 
         def _left(self, archive=False):
-            keep_keys = 'created', 'creator', 'id', 'is_archived', 'is_channel', 'is_general'
+            keep_keys = 'created', 'creator', 'id', 'is_archived', 'is_group', 'is_general'
             for k in self.data.keys():
                 if k not in keep_keys:
                     del self.data[k]
@@ -480,7 +480,8 @@ class SlackAdapter(object):
         pass
 
     def send_message(self, channel, message):
-        if not isinstance(channel, SlackAdapter._SlackChannelBase):
+        if not isinstance(channel, SlackAdapter._SlackChannelBase) and \
+                not isinstance(channel, SlackAdapter._SlackGroupBase):
             channel = self._channels.find(channel)
 
         if not channel:
