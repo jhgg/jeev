@@ -116,6 +116,59 @@ class SlackAdapter(object):
                 self.id, self.name, self.members
             )
 
+    class _SlackGroupBase(SlackObject):
+        is_direct_message = False
+
+        def __init__(self, data, adapter):
+            super(SlackAdapter._SlackGroupBase, self).__init__(data)
+            self._adapter = adapter
+
+        @property
+        def topic(self):
+            if 'topic' in self.data:
+                return self.data['topic']['value']
+
+        @topic.setter
+        def topic(self, val):
+            if val != self.data['topic']:
+                self._adapter.api.groups.setTopic(channel=self, topic=val)
+
+        @property
+        def purpose(self):
+            if 'purpose' in self.data:
+                return self.data['purpose']['value']
+
+        @purpose.setter
+        def purpose(self, val):
+            raise NotImplementedError("Bots cannot set group purpose.")
+
+    class SlackGroup(_SlackGroupBase):
+        @property
+        def members(self):
+            members = []
+            for m in self.data['members']:
+                members.append(self._adapter._users[m])
+
+            return members
+
+        def _left(self, archive=False):
+            keep_keys = 'created', 'creator', 'id', 'is_archived', 'is_group', 'is_general'
+            for k in self.data.keys():
+                if k not in keep_keys:
+                    del self.data[k]
+
+            self.data.update(
+                members=[],
+                is_member=False
+            )
+            if archive:
+                self.data['is_archived'] = True
+
+        def __repr__(self):
+            return "<SlackGroup id=%r, name=%r, members=%r>" % (
+                self.id, self.name, self.members
+            )
+
     class SlackDirectMessage(_SlackChannelBase):
         is_direct_message = True
 
@@ -427,7 +480,8 @@ class SlackAdapter(object):
         pass
 
     def send_message(self, channel, message):
-        if not isinstance(channel, SlackAdapter._SlackChannelBase):
+        if not isinstance(channel, SlackAdapter._SlackChannelBase) and \
+                not isinstance(channel, SlackAdapter._SlackGroupBase):
             channel = self._channels.find(channel)
 
         if not channel:
