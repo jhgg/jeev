@@ -525,11 +525,41 @@ class SlackAdapter(object):
 
     def _get_channel_group_or_dm(self, id):
         if id.startswith('D'):
-            return self._dms[id]
+            return self._get_dm(id)
         elif id.startswith('G'):
-            return self._groups[id]
+            return self._get_group(id)
         else:
-            return self._channels[id]
+            return self._get_channel(id)
+
+    def _get_dm(self, id):
+        if id not in self._dms:
+            self._refresh_dms()
+        return self._dms[id]
+
+    def _refresh_dms(self):
+        dms = self.api.im.list()
+        for dm in dms['ims']:
+            self._dms.add(self.SlackDirectMessage(dm, self))
+
+    def _get_group(self, id):
+        if id not in self._groups:
+            self._refresh_groups()
+        return self._groups[id]
+
+    def _refresh_groups(self):
+        groups = self.api.groups.list()
+        for group in groups['groups']:
+            self._groups.add(self.SlackDirectMessage(group, self))
+
+    def _get_channel(self, id):
+        if id not in self._channels:
+            self._refresh_channels()
+        return self._channels[id]
+
+    def _refresh_channels(self):
+        channels = self.api.channels.list()
+        for channel in channels['channels']:
+            self._channels.add(self.SlackDirectMessage(channel, self))
 
     def _get_user(self, id):
         if id not in self._users:
