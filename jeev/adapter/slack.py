@@ -4,6 +4,8 @@ import logging
 import weakref
 from gevent import Greenlet, sleep
 from slackclient._server import Server
+from websocket._exceptions import WebSocketConnectionClosedException
+
 from jeev.message import Message
 from jeev import events
 
@@ -349,8 +351,13 @@ class SlackAdapter(object):
         self.api.im.close(channel='D038BM8HQ')
 
         while True:
-            frame = self._server.websocket.recv()
-            self._handle_frame(frame)
+            try:
+                frame = self._server.websocket.recv()
+                self._handle_frame(frame)
+            except WebSocketConnectionClosedException:
+                logger.error('WebSocket connection closed.')
+                self._server.rtm_connect(reconnect=True)
+                logger.info('Restarted WebSocket connection')
 
     def _handle_frame(self, frame):
         data = json.loads(frame)
