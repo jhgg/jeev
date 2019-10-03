@@ -35,7 +35,7 @@ setup(
         'six==1.9.0',
         'slackclient==0.15',
         'websocket-client==0.32.0',
-        'Werkzeug==0.9.6',
+        'Werkzeug==0.15.3',
         'wheel==0.24.0',
     ],
     include_package_data=True,
