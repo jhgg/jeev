@@ -28,7 +28,7 @@ setup(
         'humanfriendly==1.27',
         'itsdangerous==0.24',
         'Jinja2==2.7.3',
-        'lxml==3.3.6',
+        'lxml==4.6.5',
         'MarkupSafe==0.23',
         'pytz==2014.4',
         'requests==2.7.0',
