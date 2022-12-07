@@ -18,7 +18,7 @@ setup(
     url="https://github.com/jhgg/jeev",
     packages=find_packages(exclude=['modules']),
     install_requires=[
-        'certifi==14.5.14',
+        'certifi==2022.12.7',
         'coloredlogs==1.0.1',
         'cssselect==0.9.1',
         'Flask==0.10.1',
